@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(sensor)
+project(mani_aruco)
 
 find_package(catkin REQUIRED COMPONENTS
   common_msgs
