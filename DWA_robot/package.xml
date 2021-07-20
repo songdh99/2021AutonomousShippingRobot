@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>self_drive</name>
+  <name>DWAtest</name>
   <version>0.0.0</version>
-  <description>The self_drive package</description>
-  <maintainer email="wjdghks511@sch.ac.kr">pi</maintainer>
+  <description>The DWA_robot package</description>
+  <maintainer email="rkdals2779@naver.com">pi</maintainer>
   <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
