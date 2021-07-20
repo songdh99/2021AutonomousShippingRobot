@@ -19,7 +19,7 @@ int main(int argc, char **argv){
 
 	ros::NodeHandle n;
 
-	ros::Subscriber sub = n.subscribe("aruco_xyzw", 10, PoseCallback);
+	ros::Subscriber sub = n.subscribe("aruco_xyz", 10, PoseCallback);
 	
 	
 	ros::Publisher chatter_pub = n.advertise<std_msgs::Bool>("fin_pickup", 10);
