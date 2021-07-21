@@ -1,14 +1,14 @@
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
-#include <geometry_msgs/Point.h>
+#include <geometry_msgs/Pose.h>
 
 #include <sstream>
 
 
-void PoseCallback(const geometry_msgs::Point &msg)
+void PoseCallback(const geometry_msgs::Pose &msg)
 {
 
-	ROS_INFO("%f", msg.x);
+	ROS_INFO("%f", msg.position.x);
 }
 
 int main(int argc, char **argv){
