@@ -43,7 +43,7 @@ class SelfDrive:
         rospy.Subscriber('mode', int32, self.DWAmode_set)
     def DWAmode_set(self, mode):
         DWAmode = mode
-        print("cureent mode : ", DWAmode)
+        print("current mode : ", DWAmode)
 
 
     def lds_callback(self, scan):#######만약 시간이 지나서 직선으로는 벽에 부딪힌걸로 되지만 벽을 넘는 가닥이라면..?
