@@ -28,8 +28,6 @@ dg_angle160_Radps_step = np.int16(np.rint(angle160 + np.degrees(step * np.array(
 x_move_distance = np.concatenate((zeroRadpsAr, (distancestep * np.cos(90-(180-step*RadpsAr)/2))), axis=2)
 y_move_distance = np.concatenate((np.zeros((10, 5, 1)), (distancestep * np.sin(90-(180-step*RadpsAr)/2))), axis=2)
 
-goal_location_x
-goal_location_y
 
 
 
