@@ -6,27 +6,30 @@ import rospy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
 
+# 속도, 각속도의 개
+mps_c = 5
+rps_c = 5
 
 Mps = [0.20, 0.16, 0.12, 0.08, 0.04]
 Radps = [0, 0.5, -0.5, 1.0, -1.0]   # 첫 원소는 무조건 0을 넣어야 함 (계산식이 다르기 때문)
 
 SCANran = np.full((1, 360), 0)  # 360도 측정 거리값 초기화
-five_Radps_scandistance = np.full((10, 1, 5), 0)    # 10스텝까지의 다섯개의 각속도에 따른 각도마다 스캔값 저장
+five_Radps_scandistance = np.full((10, 1, rps_c), 0)    # 10스텝까지의 다섯개의 각속도에 따른 각도마다 스캔값 저장
 # 속도, 각속도에 따라 도달하는 직선거리값을 step 마다 계산
 # 한번 계산하고 계속 사용하기 위해 함수 밖에 작성
-MpsAr = np.array(Mps).reshape(5, 1)
+MpsAr = np.array(Mps).reshape(mps_c, 1)
 RadpsAr = np.delete(np.array(Radps), 0) # 각속도가 0일땐 거리계산식이 달라지므로 제외 후 따로 계산
 step = 0.4 * np.arange(1, 11).reshape(10, 1, 1)
-zeroRadpsAr = MpsAr * step   # 각속도가 0일때 (10, 5, 1)
-distancestep = (2 * np.sin(RadpsAr * step / 2) / RadpsAr * MpsAr)   # (10, 5, 4)
-fulldistancesteps = np.concatenate((zeroRadpsAr, distancestep), axis=2)  # (10, 5, 5)
+zeroRadpsAr = MpsAr * step   # 각속도가 0일때 (10, mps_c, 1)
+distancestep = (2 * np.sin(RadpsAr * step / 2) / RadpsAr * MpsAr)   # (10, mps_c, rps_c-1)
+fulldistancesteps = np.concatenate((zeroRadpsAr, distancestep), axis=2)  # (10, mps_c, rps_c)
 
 angle160 = np.arange(-80, 80).reshape(160, 1, 1, 1)
-dg_angle160_Radps_step = np.int16(np.rint(angle160 + np.degrees(step * np.array(Radps))))     # (160, 10, 1, 5) 반올림 후 정수형환으로
+dg_angle160_Radps_step = np.int16(np.rint(angle160 + np.degrees(step * np.array(Radps))))     # (160, 10, 1, rps_c) 반올림 후 정수형환으로
 
-# (Local)로봇 기준 이동시 x, y 이동거리 (10, 5, 5)
+# (Local)로봇 기준 이동시 x, y 이동거리 (10, mps_c, rps_c)
 x_move_distance = np.concatenate((zeroRadpsAr, (distancestep * np.cos(90-(180-step*RadpsAr)/2))), axis=2)
-y_move_distance = np.concatenate((np.zeros((10, 5, 1)), (distancestep * np.sin(90-(180-step*RadpsAr)/2))), axis=2)
+y_move_distance = np.concatenate((np.zeros((10, mps_c, 1)), (distancestep * np.sin(90-(180-step*RadpsAr)/2))), axis=2)
 
 
 
@@ -40,7 +43,7 @@ class SelfDrive:
     def lds_callback(self, scan):#######만약 시간이 지나서 직선으로는 벽에 부딪힌걸로 되지만 벽을 넘는 가닥이라면..?
         turtle_vel = Twist()
 
-        dfors = np.degrees(step * RadpsAr)   # degree or scan(10, 1, 5)
+        dfors = np.degrees(step * np.array(Radps))   # degree or scan(10, 1, rps_c)
         dfors = np.int16(np.rint(dfors))   # 반올림 후 int형으로 변경
         # <SCANran> 측정 거리값 360
         global SCANran
@@ -48,24 +51,24 @@ class SelfDrive:
 
         # <five_Radps_distance>
         for i in range(0, 10):
-            for k in range(0, 5):
-                five_Radps_distance[i][1][k] = SCANran[dfors[i][1][k]]
-        t_f_f = five_Radps_scandistance * np.ones(5, 1)
-        true_false = t_f_f > fulldistancesteps  # (10, 5, 5) 계산값이 측정거리보다 낮아 부딪히지 않는다면 True
+            for k in range(0, rps_c):
+                five_Radps_distance[i][0][k] = SCANran[dfors[i][0][k]]
+        t_f_f = five_Radps_scandistance * np.ones(mps_c, 1)
+        true_false = t_f_f > fulldistancesteps  # (10, mps_c, rps_c) 계산값이 측정거리보다 낮아 부딪히지 않는다면 True
 
         # <passsec> 해당 가닥이 몇초동안 장애물에 부딪히지 않는지 계산
-        passsec = np.int16(np.zeros((5, 5)))
+        passsec = np.int16(np.zeros((mps_c, rps_c)))
         for i in range(0, 10):
             passsec = np.where(true_false[i], i, passsec)   # 부딪히기 바로 전 step을 저장
 
         # <maxpass_neardis> 이동했을 시점에서 가장 가까운 장애물과의 거리 계산
-        # (160, 10, 1, 5) 각도를 스캔한 거리값으로 변경
+        # (160, 10, 1, rps_c) 각도를 스캔한 거리값으로 변경
         a_R_s_scandistance = np.where(True, SCANran[dg_angle160_Radps_step], SCANran[dg_angle160_Radps_step])
-        # (160, 10, 5, 5)
+        # (160, 10, mps_c, rps_c)
         neardis160 = np.sqrt((a_R_s_scandistance * np.sin(np.radians(dg_angle160_Radps_step)))**2 + (fulldistancesteps - a_R_s_scandistance * abs(np.cos(np.radians(dg_angle160_Radps_step))))**2)
-        # (10, 5, 5)
+        # (10, mps_c, rps_c)
         neardis = np.min(neardis160, axis=0)
-        maxpass_neardis = np.zeros((5, 5))
+        maxpass_neardis = np.zeros((mps_c, rpsc_c))
         for i in range(0, 10):
             for j in range(0, 5):
                 k = passsec[i][j]
@@ -108,5 +111,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
