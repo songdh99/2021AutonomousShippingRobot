@@ -25,6 +25,6 @@
  <!-- rviz -->
   <group if="$(arg open_rviz)"> 
     <node pkg="rviz" type="rviz" name="rviz" required="true"
-          args="-d $(find navigation)/rviz/gmapping.rviz"/>
+          args="-d $(find navigation)/rviz/rviz.rviz"/>
   </group>
 </launch>
