@@ -13,6 +13,7 @@
         "/home/won/catkin_ws/src/dynamixel-workbench/dynamixel_workbench_operators/include/**",
         "/home/won/catkin_ws/src/dynamixel-workbench/dynamixel_workbench_toolbox/include/**",
         "/home/won/catkin_ws/src/hls_lfcd_lds_driver/include/**",
+        "/home/won/catkin_ws/src/my_first_ros_pkg/include/**",
         "/home/won/catkin_ws/src/open_manipulator/open_manipulator_control_gui/include/**",
         "/home/won/catkin_ws/src/open_manipulator/open_manipulator_controller/include/**",
         "/home/won/catkin_ws/src/open_manipulator/open_manipulator_libs/include/**",

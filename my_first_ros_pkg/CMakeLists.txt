@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(test_turtle_mani)
+project(my_first_ros_pkg)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -8,34 +8,11 @@ project(test_turtle_mani)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  cmake_modules
   geometry_msgs
   roscpp
   std_msgs
-  sensor_msgs
-  message_generation
-  moveit_msgs
-  moveit_core
-  moveit_ros_planning
-  moveit_ros_planning_interface
-)
-find_package(Eigen3 REQUIRED)
-
-set(${PROJECT_NAME}_SRCS
-  src/test_turtle_mani.cpp
 )
 
-set(${PROJECT_NAME}_HDRS
-  include/${PROJECT_NAME}/test_turtle_mani.hpp
-)
-
-set(${PROJECT_NAME}_INCLUDE_DIRECTORIES
-  "${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_INCLUDE_DESTINATION}/${PROJECT_NAME}"
-)
-
-if(NOT EXISTS ${${PROJECT_NAME}_INCLUDE_DIRECTORIES})
-  file(MAKE_DIRECTORY ${${PROJECT_NAME}_INCLUDE_DIRECTORIES})
-endif()
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -69,12 +46,12 @@ endif()
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
-##Generate messages in the 'msg' folder
- add_message_files(
-   FILES
-   Msg.msg
-   Mani_State_Msg.msg
- )
+## Generate messages in the 'msg' folder
+# add_message_files(
+#   FILES
+#   Message1.msg
+#   Message2.msg
+# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -91,13 +68,10 @@ endif()
 # )
 
 ## Generate added messages and services with any dependencies listed here
- generate_messages(
-   DEPENDENCIES
-   geometry_msgs   
-   moveit_msgs
-   sensor_msgs
-   std_msgs
- )
+# generate_messages(
+#   DEPENDENCIES
+#   geometry_msgs#   std_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -129,25 +103,12 @@ endif()
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-  CATKIN_DEPENDS
-    geometry_msgs
-    roscpp 
-    std_msgs 
-    sensor_msgs
-    message_runtime 
-    moveit_msgs
-    moveit_core
-    moveit_ros_planning
-    moveit_ros_planning_interface
-  DEPENDS EIGEN3
-  EXPORTED_TARGETS ${PROJECT_NAME}_generate_messages_cpp
+#  INCLUDE_DIRS include
+#  LIBRARIES my_first_ros_pkg
+ CATKIN_DEPENDS geometry_msgs roscpp std_msgs
+#  DEPENDS system_lib
 )
 
-set(_cmake_current_binary_dir "${CMAKE_CURRENT_BINARY_DIR}")
-set(CMAKE_CURRENT_BINARY_DIR ${needs_INCLUDE_DIRECTORIES})
-
-set(CMAKE_CURRENT_BINARY_DIR "${_cmake_current_binary_dir}")
 ###########
 ## Build ##
 ###########
@@ -155,14 +116,13 @@ set(CMAKE_CURRENT_BINARY_DIR "${_cmake_current_binary_dir}")
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  include
+# include
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/needs.cpp
+#   src/${PROJECT_NAME}/my_first_ros_pkg.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -173,7 +133,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/needs_node.cpp)
+add_executable(test_turtle_mani src/test_turtle_mani.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -186,9 +146,9 @@ include_directories(
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(test_turtle_mani
+  ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##
@@ -232,23 +192,12 @@ include_directories(
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
 
-add_executable(test_turtle_mani src/test_turtle_mani.cpp)
-add_dependencies(test_turtle_mani ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(test_turtle_mani ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
-
-add_executable(test_turtle_mani_with_kine src/test_turtle_mani_with_kine.cpp)
-add_dependencies(test_turtle_mani_with_kine ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(test_turtle_mani_with_kine ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
-
-
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 #############
 ## Testing ##
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_needs.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_my_first_ros_pkg.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
