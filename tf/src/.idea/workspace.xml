@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="0be2ecd8-c770-454e-b391-3bdde206ae7b" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/../../aruco/src/aruco_pub.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../aruco/src/aruco_pub.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/.travis.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/CHANGELOG.rst" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/launch/slam_gmapping_pr2.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/nodelet_plugins.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/package.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/src/main.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/src/nodelet.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/src/replay.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/src/slam_gmapping.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/src/slam_gmapping.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/basic_localization_laser_different_beamcount.test" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/basic_localization_stage.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/basic_localization_stage_replay.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/basic_localization_stage_replay2.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/basic_localization_symmetry.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/basic_localization_upside_down.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/rtest.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/test_map.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/slam_gmapping/CHANGELOG.rst" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/slam_gmapping/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/slam_gmapping/package.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tf.py" beforeDir="false" afterPath="$PROJECT_DIR$/tf.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="ProjectId" id="1vf4rcvtcKcBOmRDn5C9q3FgliA" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="0be2ecd8-c770-454e-b391-3bdde206ae7b" name="Default Changelist" comment="" />
+      <created>1626940011740</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1626940011740</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

@@ -20,7 +20,7 @@ int main(int argc, char **argv){
 	ros::Subscriber sub = n.subscribe("mode", 10, PoseCallback);
 	
 	
-	ros::Publisher chatter_pub = n.advertise<geometry_msgs::Pose>("mani_pose", 10);
+	ros::Publisher chatter_pub = n.advertise<geometry_msgs::Pose>("mani_pos", 10);
 	
 	ros::Rate loop_rate(10);
 	

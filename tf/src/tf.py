@@ -1,7 +1,8 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import rospy
-from std_msgs.msg import Int32, Bool, String
+from std_msgs.msg import Int32, Bool, String, Float32
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose, Quaternion, Point, PoseStamped
 
@@ -9,21 +10,20 @@ from geometry_msgs.msg import Pose, Quaternion, Point, PoseStamped
 class Transform():
     def __init__(self):
         self.a_about_m_pos = rospy.Publisher('a_about_m_pos', Pose, queue_size=1)
-        self.goal_dist = rospy.Publisher('goal_dist', float, queue_size=1)
+        self.goal_dist = rospy.Publisher('goal_dist', Float32, queue_size=1)
 
         rospy.Subscriber('mani_pos', Pose, self.mani_pos)
         rospy.Subscriber('current_xyz', Pose, self.current_xyz)
         rospy.Subscriber('aruco_xyzw', Pose, self.aruco_xyzw)
-        rospy.Rate(10)
 
     def pub_tf(self):
         a = Pose()
-        b = float()
+        b = Float32()
         a.position.x = 1
         a.position.y = 2
         a.position.z = 3
 
-        b = 45
+        b.data = 45
         self.a_about_m_pos.publish(a)
         self.goal_dist.publish(b)
 
@@ -42,6 +42,7 @@ class Transform():
 def main():
     rospy.init_node("tf")
     tf = Transform()
+    rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         tf.pub_tf()
         rate.sleep()
