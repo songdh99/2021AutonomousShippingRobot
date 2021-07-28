@@ -25,7 +25,7 @@ distancestep = (2 * np.sin(RadpsAr * step / 2) / RadpsAr * MpsAr)   # (10, mps_c
 fulldistancesteps = np.concatenate((zeroRadpsAr, distancestep), axis=2)  # (10, mps_c, rps_c)
 
 angle160 = np.arange(-80, 80).reshape(160, 1, 1, 1)
-dg_angle160_Radps_step = np.int16(np.rint(angle160 + np.degrees(step * np.array(Radps))))     # (160, 10, 1, rps_c) 반올림 후 정수형으로 변환
+dg_angle160_Radps_step = np.int32(np.rint(angle160 + np.degrees(step * np.array(Radps))))     # (160, 10, 1, rps_c) 반올림 후 정수형으로 변환
 
 # (Local)로봇 기준 이동시 x, y 이동거리 (10, mps_c, rps_c)
 x_move_distance = np.concatenate((zeroRadpsAr, (distancestep * np.cos(90-(180-step*RadpsAr)/2))), axis=2)
@@ -40,17 +40,16 @@ class SelfDrive:
     def __init__(self, publisher):
         self.publisher = publisher
         self.mps_rps = rospy.Publisher('mps_rps', float, queue_size=1)
-        rospy.Subscriber('mode', int32, self.DWAmode_set)
-    def DWAmode_set(self, mode):
-        DWAmode = mode
-        print("current mode : ", DWAmode)
+
+        rospy.Rate(10)
+
 
 
     def lds_callback(self, scan):#######만약 시간이 지나서 직선으로는 벽에 부딪힌걸로 되지만 벽을 넘는 가닥이라면..?
         turtle_vel = Twist()
 
         dfors = np.degrees(step * np.array(Radps))   # degree or scan(10, 1, rps_c)
-        dfors = np.int16(np.rint(dfors))   # 반올림 후 int형으로 변경
+        dfors = np.int32(np.rint(dfors))   # 반올림 후 int형으로 변경
         # <SCANran> 측정 거리값 360
         global SCANran
         SCANran = np.array(scan.ranges)     # 튜플 타입인 scan.ranges를 행렬로 변환 대입
@@ -63,12 +62,12 @@ class SelfDrive:
         true_false = t_f_f > fulldistancesteps  # (10, mps_c, rps_c) 계산값이 측정거리보다 낮아 부딪히지 않는다면 True
 
         # <passsec> (mps_c, rps_c) 해당 가닥이 몇초동안 장애물에 부딪히지 않는지 계산
-        passsec = np.int16(np.zeros((mps_c, rps_c)))
+        passsec = np.int32(np.zeros((mps_c, rps_c)))
         for i in range(0, 10):
             passsec = np.where(true_false[i], i, passsec)   # 부딪히기 바로 전 step을 저장
 
         # <pass_distance> (mps_c, rps_c) 부딪히지 않고 이동하는 거리
-        pass_distance_score = np.argsort(passsec * MpsAr)##############argsort 고쳐야됨
+        pass_distance_score = passsec * MpsAr
 
 
         # <maxpass_neardis> 이동했을 시점에서 가장 가까운 장애물과의 거리 계산
@@ -84,42 +83,42 @@ class SelfDrive:
                 k = (passsec[i][j] - 2) % 1
                 maxpass_neardis[i][j] = neardis[k][i][j]    # (mps_c, rps_c)
         mp_nd = np.where(maxpass_neardis > 0.2, 0.2, maxpass_neardis)     # 20cm가 넘는것은 20cm로 만듦
-        mp_nd_score = np.argsort(mp_nd, axis=None) ###########argsort 고쳐야됨
+
         """
         # goal과 robot사이의 거리
         global goal_location_x, goal_location_y
         robot_to_goal_x = x_move_distance - goal_location_x
         robot_to_goal_y = y_move_distance - goal_location_y
         r_t_g_dis = np.hypot(robot_to_goal_x, robot_to_goal_y)  # sqrt(x**2 + y**2)
-        r_t_g_dis_penalty = np.argsort(r_t_g_dis)  # (10, 5, 5) robot과 goal 사이의 거리를 작은 순서대로 순위매김
         """
+
         scoremap = mp_nd_score  # r_t_g_dis_penalty를 빼거나 해야됨
         score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)
-        turtle_vel.linear.x = Mps[score_row_col[0]]
-        turtle_vel.angular.z = Radps[score_row_col[1]]
-        print(scpremap)
-        self.publisher.publish(turtle_vel)
 
+        ####
+        print('pass_distance_score\n', pass_distance_score)
+        print('mp_nd_score\n', mp_nd_score)
 
+        #turtle_vel.linear.x = Mps[score_row_col[0]]
+        #turtle_vel.angular.z = Radps[score_row_col[1]]
 
-
-
-
-
-
+        #self.publisher.publish(turtle_vel)
 
 
 def main():
     rospy.init_node('DWA')
     publisher = rospy.Publisher('cmd_vel', Twist, queue_size=1)
     driver = SelfDrive(publisher)
+    rate = rospy.Rate(10)
     subscriber = rospy.Subscriber('scan', LaserScan,
                                   lambda scan: driver.lds_callback(scan))
+    rate.sleep()
     rospy.spin()
 
 
 if __name__ == "__main__":
     main()
+
 
 
 
