@@ -1,4 +1,4 @@
-#!/home/pi/.pyenv/versions/rospy3/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import math
 import numpy as np
@@ -8,10 +8,10 @@ from sensor_msgs.msg import LaserScan
 
 # 속도, 각속도의 개수
 mps_c = 5
-rps_c = 9
+rps_c = 13
 
 Mps = [0.15, 0.13, 0.11, 0.09, 0.07]
-Radps = [0, 0.3, -0.3, 0.5, -0.5, 0.7, -0.7, 0.9, -0.9]   # 첫 원소는 무조건 0을 넣어야 함 (계산식이 다르기 때문)
+Radps = [0, 0.3, -0.3, 0.5, -0.5, 0.6, -0.6, 0.7, -0.7, 0.8, -0.8, 0.9, -0.9]   # 첫 원소는 무조건 0을 넣어야 함 (계산식이 다르기 때문)
 
 SCANran = np.full((1, 360), 0)  # 360도 측정 거리값 초기화
 five_Radps_scandistance = np.full((10, 1, rps_c), 0.)    # 10스텝까지의 다섯개의 각속도에 따른 각도마다 스캔값 저장
@@ -22,7 +22,7 @@ RadpsAr = np.delete(np.array(Radps), 0)  # 각속도가 0일땐 거리계산식�
 step = 0.1 * np.arange(1, 11).reshape(10, 1, 1)
 zeroRadpsAr = MpsAr * step   # 각속도가 0일때 (10, mps_c, 1)
 distancestep = (2 * np.sin(RadpsAr * step / 2) / RadpsAr * MpsAr)   # (10, mps_c, rps_c-1)
-fulldistancesteps = np.concatenate((zeroRadpsAr, distancestep), axis=2) + 0.2  # (10, mps_c, rps_c) 로봇의 크기보정을 위해 + 0.2
+fulldistancesteps = np.concatenate((zeroRadpsAr, distancestep), axis=2) + 0.25  # (10, mps_c, rps_c) 로봇의 크기보정을 위해 + 0.2
 
 angle160 = np.arange(-80, 80).reshape(160, 1, 1, 1)
 dg_angle160_Radps_step = np.int32(np.rint(angle160 + np.degrees(step * np.array(Radps))))     # (160, 10, 1, rps_c) 반올림 후 정수형으로 변환
@@ -77,7 +77,7 @@ class SelfDrive:
             for j in range(0, rps_c):
                 k = (passsec[i][j] - 2) % 1
                 maxpass_neardis[i][j] = neardis[k][i][j]    # (mps_c, rps_c)
-        mp_nd = np.where(maxpass_neardis > 0.15, 0.15, maxpass_neardis)     # 20cm가 넘는것은 20cm로 만듦
+        mp_nd = np.where(maxpass_neardis > 0.30, 0.30, maxpass_neardis)     # 20cm가 넘는것은 20cm로 만듦
 
         """
         # goal과 robot사이의 거리
@@ -87,7 +87,7 @@ class SelfDrive:
         r_t_g_dis = np.hypot(robot_to_goal_x, robot_to_goal_y)  # sqrt(x**2 + y**2)
         """
 
-        scoremap = 8*mp_nd + pass_distance  # r_t_g_dis를 빼거나 해야됨
+        scoremap = 10 * mp_nd + pass_distance  # r_t_g_dis를 빼거나 해야됨
         score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)
 
         ####
