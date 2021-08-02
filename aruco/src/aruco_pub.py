@@ -66,17 +66,17 @@ def detect_marker(mtx, dist):
     cam = cv2.VideoCapture(0)
     param = cv2.aruco.DetectorParameters_create()
     aruco_pub = rospy.Publisher('aruco_xyzw', Pose, queue_size=10)
-    #check_pub = rospy.Publisher('check_aruco', Bool, queue_size=10)
+    check_pub = rospy.Publisher('check_aruco', Bool, queue_size=10)
     rate = rospy.Rate(10)
     aruco = Pose()
-    #check = Bool()
+    check = Bool()
     if cam.isOpened():
         while not rospy.is_shutdown():
             _, frame = cam.read()
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             coners, ids, point = cv2.aruco.detectMarkers(gray_frame, aruco_dict, parameters=param)
             if np.all(ids != None):
-                #check.data = True
+                check.data = True
                 rvecs, tvecs = cv2.aruco.estimatePoseSingleMarkers(coners, 0.04, mtx, dist)
                 frame = cv2.aruco.drawAxis(frame, mtx, dist, rvecs[0], tvecs[0], 0.04)
                 rvecs_msg = rvecs.tolist()
@@ -94,9 +94,9 @@ def detect_marker(mtx, dist):
                 aruco.position.y = tvecs_msg_y
                 aruco.position.z = tvecs_msg_z
                 aruco_pub.publish(aruco)
-            #else:
-                #check.data = False
-            #check_pub.publish(check)
+            else:
+                check.data = False
+            check_pub.publish(check)
             rate.sleep()
             frame = cv2.aruco.drawDetectedMarkers(frame, coners, ids)
             cv2.imshow('video', frame)

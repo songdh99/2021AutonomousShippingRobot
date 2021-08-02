@@ -2,31 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0be2ecd8-c770-454e-b391-3bdde206ae7b" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../../aruco/src/aruco_pub.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../aruco/src/aruco_pub.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/.travis.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/CHANGELOG.rst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/CMakeLists.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/launch/slam_gmapping_pr2.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/nodelet_plugins.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/package.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/src/main.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/src/nodelet.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/src/replay.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/src/slam_gmapping.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/src/slam_gmapping.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/basic_localization_laser_different_beamcount.test" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/basic_localization_stage.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/basic_localization_stage_replay.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/basic_localization_stage_replay2.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/basic_localization_symmetry.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/basic_localization_upside_down.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/rtest.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/gmapping/test/test_map.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/slam_gmapping/CHANGELOG.rst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/slam_gmapping/CMakeLists.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../slam_gmapping/slam_gmapping/package.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../control/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../../control/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../control/package.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../control/package.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tf.py" beforeDir="false" afterPath="$PROJECT_DIR$/tf.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -68,5 +46,6 @@
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
 </project>
