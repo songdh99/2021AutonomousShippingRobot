@@ -16,13 +16,17 @@ def main():
 		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
 			continue
 		
-		start_xyz = Pose()
-		start_xyz.position.x = trans[0]
-		start_xyz.position.y = trans[1]
-		start_xyz.position.z = trans[2]
+		current_xyz = Pose()
+		current_xyz.position.x = trans[0]
+		current_xyz.position.y = trans[1]
+		current_xyz.position.z = trans[2]
+		
+		current_angle = Pose()
+		current_angle.position.z = rot[2]
+		
 
-		rospy.loginfo(start_xyz)
-		pub.publish(start_xyz)
+		print("x : {} y : {} z : {} angle.z : {} ".format(current_xyz.position.x, current_xyz.position.y, current_xyz.position.z, current_angle.position.z))
+		pub.publish(current_xyz)
 		rate.sleep()
 
 if __name__ == '__main__':
@@ -30,3 +34,4 @@ if __name__ == '__main__':
 		main()
 	except rospy.ROSInterruptException:
 		pass
+		
