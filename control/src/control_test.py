@@ -7,36 +7,51 @@ from geometry_msgs.msg import Pose
 
 class Tower():
 	def __init__(self):
-		self.DWA_pub = rospy.Publisher('DWA_pub', Bool, queue_size=10)
-		self.mani_pub = rospy.Publisher('mani_pub', Bool, queue_size=10)
-		self.move_aruco_pub = rospy.Publisher('move_aruco_pub', Bool, queue_size=10)
+		self.DWA_pub = rospy.Publisher('DWA', Bool, queue_size=10)
+		self.aruco_tf_pub = rospy.Publisher('aruco_tf', Bool, queue_size=10)
+		self.mani_pub = rospy.Publisher('pick_or_place_pub', String, queue_size=10)
 		self.mode = "patrol"
-		#mani가 목표물을 잡았는지 판단
-		self.mani = False
+		self.stop_check = False
 		self.aruco_check = False
+		self.mani_error = False
 		
+
 	def tower(self):
-	#목표물을 향해 돌아다니기
+		#목표물을 향해 돌아다니기
 		if self.mode == "patrol":
 			rospy.loginfo("mode : %s", self.mode)
 			self.DWA_pub.publish(True)
-			self.mode = "find_aruco"
-			
-		#aruco 찾기
+			self.mode = "wait_goal"
+
+		#목표물에 도착했는지 확인
+		if self.mode == "wait_goal":
+			rospy.loginfo("mode : %s", self.mode)
+			rospy.Subscriber('stop_point', String, self.stop_callback)
+			if self.stop_check:
+				self.mode = "find_aruco"
+
+		#aruco 찾은 후 tf 변환
 		if self.mode == "find_aruco":
 			rospy.loginfo_once("mode : %s", self.mode)
 			rospy.Subscriber('check_aruco', Bool, self.aruco_check_callback)
 			if self.aruco_check:
 				rospy.loginfo("Find aruco marker")
-				self.move_aruco_pub.publish(True)
-				#self.mode = "move_aruco"
+				self.aruco_tf_pub.publish(True)
+				self.mode = "move_aruco"
 			elif not self.aruco_check:
-    				self.move_aruco_pub.publish(False)
+    				self.aruco_tf_pub.publish(False)
 
 		#aruco로 팔 이동
 		if self.mode == "move_aruco":
 			rospy.loginfo("mode : %s", self.mode)
-			self.mani_pub.publish(True)
+			
+			self.mani_pub.publish("pick")
+
+	def stop_callback(self, check):
+		if(check.data == "stop"):
+			self.stop_check = True
+		else:
+			self.stop_check = False
 
 	def aruco_check_callback(self, check):
 		self.aruco_check = check.data
