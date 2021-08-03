@@ -93,7 +93,7 @@ class SelfDrive:
         r_g_path_len_x = goal_location_x - current_xyz.position.x + np.delete(path_len, 1, axis=2)
         r_g_path_len_y = goal_location_y - current_xyz.position.y + np.delete(path_len, 0, axis=2)
         r_g_dis = np.reshape(np.hypot(r_g_path_len_x, r_g_path_len_y), (10, mps_c, rps_c))
-        r_g_score = np.amin(r_g_dis, axis=0)  # (1, rps_c), sqrt(x**2 + y**2)
+        r_g_score = np.amin(r_g_dis, axis=0) - np.amin(r_g_dis, axis=0).mean()  # (1, rps_c), sqrt(x**2 + y**2)
     """
     def mode(self, DWA_pub):
         global stop_point
@@ -141,16 +141,16 @@ class SelfDrive:
                 k = (passsec[i][j] - 2) % 1
                 maxpass_neardis[i][j] = neardis[k][i][j]    # (mps_c, rps_c)
         mp_nd = np.where(maxpass_neardis > 0.30, 0.30, maxpass_neardis)     # 30cm가 넘는 것은 30cm로 만듦
-        mp_nd_score = np.where(mp_nd < 0.10, -10, mp_nd)     # 10cm 보다 낮은 것은 -1로 만듦
+        mp_nd_score = np.where(mp_nd < 0.10, -100, mp_nd)     # 10cm 보다 낮은 것은 -1로 만듦
         # 만약 모든 범위가 10cm 보다 낮다면 turn
-        if np.max(mp_nd_score) == -10:
+        if np.max(mp_nd_score) == -100:
             turn = True
 
 
 
 
         # 최종 스코어 <scoremap>
-        scoremap = 10 * mp_nd_score + pass_distance - r_g_score
+        scoremap = 10 * mp_nd_score + pass_distance - 10 * r_g_score
         score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)    # 스코어맵에서 가장 큰 값의 인덱스
 
         ####
@@ -169,13 +169,11 @@ class SelfDrive:
 
 
 def main():
-    rate = rospy.Rate(10)
     rospy.init_node('DWA')
     publisher = rospy.Publisher('cmd_vel', Twist, queue_size=1)
     driver = SelfDrive(publisher)
     subscriber = rospy.Subscriber('scan', LaserScan,
                                   lambda scan: driver.lds_callback(scan))
-    rete.sleep()
     rospy.spin()
 
 
