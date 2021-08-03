@@ -36,9 +36,12 @@ xy_move_distance = np.concatenate((np.reshape((x_move_distance), (10, -1, 1)), n
 
 current_xyz = Pose()
 current_angle = Pose()
-stop = Bool()
-goal_location_x = 0.
-goal_location_y = 0.
+stop_point = String()
+goal_location_x = 0.2392
+goal_location_y = -0.7449
+start_location_x = 0
+start_location_y = 0
+retry = 0
 r_g_score = np.arange(0, rps_c)
 
 
@@ -46,26 +49,43 @@ class SelfDrive:
 
     def __init__(self, publisher):
         self.publisher = publisher
-        self.stop = rospy.Publisher('stop', Bool, queue_size=1)
+        self.stop_point = rospy.Publisher('stop_point', String, queue_size=1)
 
         rospy.Subscriber('current_xyz', Pose, self.current_xyz)
         rospy.Subscriber('current_angle', Pose, self.current_angle)
+        """
+        rospy.Subscriber('DWA_pub', String, self.mode)
+        """
 
     def current_angle(self, angle):
-        current_angle.point.z = angle.point.z
+        current_angle.point.z = (angle.point.z * 360) * math.pi / 180   # angle.point.z가 360도가 1로 나타남
 
     def current_xyz(self, xyz):
+        global retry
         global r_g_score
-        global stop
+        global stop_point
+        global goal_location_x
+        global goal_location_y
+        global start_location_x
+        global start_location_y
         current_xyz.point.x = xyz.point.x
         current_xyz.point.y = xyz.point.y
+        retry += 1
+        if retry == 1:
+            stop_point = "goal point"
+            start_location_x = current_xyz.point.x
+            start_location_y = current_xyz.point.y
 
         RtoGdis = np.hypot(goal_location_x - current_xyz.point.x, goal_location_y - current_xyz.point.y)
-        if RtoGdis < 0.45:
-            stop = True
+        if RtoGdis < 0.45 and stop_point == "goal point":
+            stop_point = "stop"
+            goal_location_x = start_location_x
+            goal_location_y = start_location_y
 
+        if RtoGdis < 0.45 and stop_point == "starting point":
+            stop_point = "stop"
 
-        ####### ((yaw와 current_xyz를 받아오고 goal_location_xy를 넣어놔야 사용 가능)) 목표와 로봇사이 거리 스코어
+        # 목표와 로봇사이 거리 스코어
         Rot = np.array([[math.cos(current_angle.point.z), -math.sin(current_angle.point.z)],
                         [math.sin(current_angle.point.z), math.cos(current_angle.point.z)]])
         path_len = np.round_((np.dot(xy_move_distance, Rot)), 4)  # 글로벌에서 본 경로거리를 구해서 4째자리까지 반올림
@@ -73,6 +93,12 @@ class SelfDrive:
         r_g_path_len_y = goal_location_y - current_xyz.position.y + np.delete(path_len, 0, axis=2)
         r_g_dis = np.reshape(np.hypot(r_g_path_len_x, r_g_path_len_y), (10, mps_c, rps_c))
         r_g_score = np.amin(r_g_dis, axis=0)  # (1, rps_c), sqrt(x**2 + y**2)
+    """
+    def mode(self, DWA_pub):
+        global stop_point
+        if DWA_pub == "집었음":    ###########고쳐야됨
+            stop_point = "starting point"
+    """
 
 
 
@@ -114,7 +140,7 @@ class SelfDrive:
                 k = (passsec[i][j] - 2) % 1
                 maxpass_neardis[i][j] = neardis[k][i][j]    # (mps_c, rps_c)
         mp_nd = np.where(maxpass_neardis > 0.30, 0.30, maxpass_neardis)     # 30cm가 넘는 것은 30cm로 만듦
-        mp_nd_score = np.where(mp_nd < 0.10, -10, mp_nd)     # 10cm 보다 낮은 것은 -1로 만듦
+        mp_nd_score = np.where(mp_nd < 0.12, -10, mp_nd)     # 10cm 보다 낮은 것은 -1로 만듦
         # 만약 모든 범위가 10cm 보다 낮다면 turn
         if np.max(mp_nd_score) == -10:
             turn = True
@@ -136,7 +162,7 @@ class SelfDrive:
         if turn:
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = 1.0
-        if stop:
+        if stop_point == "stop":
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = 0
         self.publisher.publish(turtle_vel)
