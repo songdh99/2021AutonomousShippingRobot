@@ -56,9 +56,10 @@ class SelfDrive:
         """
         rospy.Subscriber('DWA_pub', String, self.mode)
         """
+        rospy.Rate(10)
 
     def current_angle(self, angle):
-        current_angle.point.z = (angle.point.z * 360) * math.pi / 180   # angle.point.z가 360도가 1로 나타남
+        current_angle.position.z = (angle.position.z * 360) * math.pi / 180   # angle.position.z가 360도가 1로 나타남
 
     def current_xyz(self, xyz):
         global retry
@@ -68,15 +69,15 @@ class SelfDrive:
         global goal_location_y
         global start_location_x
         global start_location_y
-        current_xyz.point.x = xyz.point.x
-        current_xyz.point.y = xyz.point.y
+        current_xyz.position.x = xyz.position.x
+        current_xyz.position.y = xyz.position.y
         retry += 1
         if retry == 1:
             stop_point = "goal point"
-            start_location_x = current_xyz.point.x
-            start_location_y = current_xyz.point.y
+            start_location_x = current_xyz.position.x
+            start_location_y = current_xyz.position.y
 
-        RtoGdis = np.hypot(goal_location_x - current_xyz.point.x, goal_location_y - current_xyz.point.y)
+        RtoGdis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
         if RtoGdis < 0.45 and stop_point == "goal point":
             stop_point = "stop"
             goal_location_x = start_location_x
@@ -86,8 +87,8 @@ class SelfDrive:
             stop_point = "stop"
 
         # 목표와 로봇사이 거리 스코어
-        Rot = np.array([[math.cos(current_angle.point.z), -math.sin(current_angle.point.z)],
-                        [math.sin(current_angle.point.z), math.cos(current_angle.point.z)]])
+        Rot = np.array([[math.cos(current_angle.position.z), -math.sin(current_angle.position.z)],
+                        [math.sin(current_angle.position.z), math.cos(current_angle.position.z)]])
         path_len = np.round_((np.dot(xy_move_distance, Rot)), 4)  # 글로벌에서 본 경로거리를 구해서 4째자리까지 반올림
         r_g_path_len_x = goal_location_x - current_xyz.position.x + np.delete(path_len, 1, axis=2)
         r_g_path_len_y = goal_location_y - current_xyz.position.y + np.delete(path_len, 0, axis=2)
@@ -140,7 +141,7 @@ class SelfDrive:
                 k = (passsec[i][j] - 2) % 1
                 maxpass_neardis[i][j] = neardis[k][i][j]    # (mps_c, rps_c)
         mp_nd = np.where(maxpass_neardis > 0.30, 0.30, maxpass_neardis)     # 30cm가 넘는 것은 30cm로 만듦
-        mp_nd_score = np.where(mp_nd < 0.12, -10, mp_nd)     # 10cm 보다 낮은 것은 -1로 만듦
+        mp_nd_score = np.where(mp_nd < 0.10, -10, mp_nd)     # 10cm 보다 낮은 것은 -1로 만듦
         # 만약 모든 범위가 10cm 보다 낮다면 turn
         if np.max(mp_nd_score) == -10:
             turn = True
@@ -153,8 +154,7 @@ class SelfDrive:
         score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)    # 스코어맵에서 가장 큰 값의 인덱스
 
         ####
-        print('pass_distance\n', passsec)
-        print('mp_nd\n', mp_nd)
+        print('r_g_score\n', r_g_score)
 
         turtle_vel.linear.x = Mps[score_row_col[0]]
         turtle_vel.angular.z = Radps[score_row_col[1]]
@@ -169,11 +169,13 @@ class SelfDrive:
 
 
 def main():
+    rate = rospy.Rate(10)
     rospy.init_node('DWA')
     publisher = rospy.Publisher('cmd_vel', Twist, queue_size=1)
     driver = SelfDrive(publisher)
     subscriber = rospy.Subscriber('scan', LaserScan,
                                   lambda scan: driver.lds_callback(scan))
+    rete.sleep()
     rospy.spin()
 
 
