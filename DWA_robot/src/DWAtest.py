@@ -39,8 +39,9 @@ current_angle = Pose()
 stop_point = String()
 goal_location_x = 0.2392
 goal_location_y = -0.7449
-start_location_x = 0
-start_location_y = 0
+start_location_x = 0.
+start_location_y = 0.
+goal_radian = 0.
 retry = 0
 r_g_score = np.arange(0, rps_c)
 
@@ -69,6 +70,7 @@ class SelfDrive:
         global goal_location_y
         global start_location_x
         global start_location_y
+        global goal_radian
         current_xyz.position.x = xyz.position.x
         current_xyz.position.y = xyz.position.y
         retry += 1
@@ -80,11 +82,18 @@ class SelfDrive:
         RtoGdis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
         if RtoGdis < 0.45 and stop_point == "goal point":
             stop_point = "stop"
+            x = goal_location_x - current_xyz.position.x
+            y = goal_location_y - current_xyz.position.y
+            goal_radian = math.atan2(y, x)
             goal_location_x = start_location_x
             goal_location_y = start_location_y
 
+
         if RtoGdis < 0.45 and stop_point == "starting point":
             stop_point = "stop"
+            x = goal_location_x - current_xyz.position.x
+            y = goal_location_y - current_xyz.position.y
+            goal_radian = math.atan2(y, x)
 
         # 목표와 로봇사이 거리 스코어
         Rot = np.array([[math.cos(current_angle.position.z), -math.sin(current_angle.position.z)],
@@ -164,7 +173,9 @@ class SelfDrive:
             turtle_vel.angular.z = 1.0
         if stop_point == "stop":
             turtle_vel.linear.x = 0
-            turtle_vel.angular.z = 0
+            turtle_vel.angular.z = goal_radian/6
+
+
         self.publisher.publish(turtle_vel)
 
 
