@@ -3,7 +3,8 @@
 import math
 import numpy as np
 import rospy
-from geometry_msgs.msg import Twist
+from std_msgs.msg import Int32, Bool, String
+from geometry_msgs.msg import Twist, Pose, Quaternion, Point, PoseStamped
 from sensor_msgs.msg import LaserScan
 
 # 속도, 각속도의 개수
@@ -30,18 +31,54 @@ dg_angle160_Radps_step = np.int32(np.rint(angle160 + np.degrees(step * np.array(
 # (Local)로봇 기준 이동시 x, y 이동거리 (10, mps_c, rps_c)
 x_move_distance = np.concatenate((zeroRadpsAr, (distancestep * np.cos(90-(180-step*RadpsAr)/2))), axis=2)
 y_move_distance = np.concatenate((np.zeros((10, mps_c, 1)), (distancestep * np.sin(90-(180-step*RadpsAr)/2))), axis=2)
+# 좌표계 변환을 위해 x,y의 9스텝 까지의 이동거리를 합쳐서 (rps_c, 2)로 만듦
+xy_move_distance = np.concatenate((np.reshape((x_move_distance), (10, -1, 1)), np.reshape((y_move_distance), (10, -1, 1))), axis=2)
 
-
-
+current_xyz = Pose()
+current_angle = Pose()
+stop = Bool()
+goal_location_x = 0.
+goal_location_y = 0.
+r_g_score = np.arange(0, rps_c)
 
 
 class SelfDrive:
 
     def __init__(self, publisher):
         self.publisher = publisher
+        self.stop = rospy.Publisher('stop', Bool, queue_size=1)
+
+        rospy.Subscriber('current_xyz', Pose, self.current_xyz)
+        rospy.Subscriber('current_angle', Pose, self.current_angle)
+
+    def current_angle(self, angle):
+        current_angle.point.z = angle.point.z
+
+    def current_xyz(self, xyz):
+        global r_g_score
+        global stop
+        current_xyz.point.x = xyz.point.x
+        current_xyz.point.y = xyz.point.y
+
+        RtoGdis = np.hypot(goal_location_x - current_xyz.point.x, goal_location_y - current_xyz.point.y)
+        if RtoGdis < 0.45:
+            stop = True
+
+
+        ####### ((yaw와 current_xyz를 받아오고 goal_location_xy를 넣어놔야 사용 가능)) 목표와 로봇사이 거리 스코어
+        Rot = np.array([[math.cos(current_angle.point.z), -math.sin(current_angle.point.z)],
+                        [math.sin(current_angle.point.z), math.cos(current_angle.point.z)]])
+        path_len = np.round_((np.dot(xy_move_distance, Rot)), 4)  # 글로벌에서 본 경로거리를 구해서 4째자리까지 반올림
+        r_g_path_len_x = goal_location_x - current_xyz.position.x + np.delete(path_len, 1, axis=2)
+        r_g_path_len_y = goal_location_y - current_xyz.position.y + np.delete(path_len, 0, axis=2)
+        r_g_dis = np.reshape(np.hypot(r_g_path_len_x, r_g_path_len_y), (10, mps_c, rps_c))
+        r_g_score = np.amin(r_g_dis, axis=0)  # (1, rps_c), sqrt(x**2 + y**2)
+
+
 
     def lds_callback(self, scan):#######만약 시간이 지나서 직선으로는 벽에 부딪힌걸로 되지만 벽을 넘는 가닥이라면..?
         turtle_vel = Twist()
+        turn = False
 
         dfors = np.degrees(step * np.array(Radps))   # degree for scan(10, 1, rps_c)
         dfors = np.int32(np.rint(dfors))   # 반올림 후 int형으로 변경
@@ -64,31 +101,30 @@ class SelfDrive:
         # <pass_distance> (mps_c, rps_c) 부딪히지 않고 이동하는 거리
         pass_distance = passsec * np.array(Mps).reshape(mps_c, 1)
 
-
         # <maxpass_neardis> 이동했을 시점에서 가장 가까운 장애물과의 거리 계산
         # (160, 10, 1, rps_c) 각도를 스캔한 거리값으로 변경
         a_R_s_scandistance = np.where(True, SCANran[dg_angle160_Radps_step], SCANran[dg_angle160_Radps_step])
         # (160, 10, mps_c, rps_c)
         neardis160 = np.sqrt((a_R_s_scandistance * np.sin(np.radians(dg_angle160_Radps_step)))**2 + (fulldistancesteps - a_R_s_scandistance * abs(np.cos(np.radians(dg_angle160_Radps_step))))**2)
         # (10, mps_c, rps_c)
-        neardis = np.min(neardis160, axis=0)
+        neardis = np.amin(neardis160, axis=0)
         maxpass_neardis = np.zeros((mps_c, rps_c))
         for i in range(0, mps_c):
             for j in range(0, rps_c):
                 k = (passsec[i][j] - 2) % 1
                 maxpass_neardis[i][j] = neardis[k][i][j]    # (mps_c, rps_c)
-        mp_nd = np.where(maxpass_neardis > 0.30, 0.30, maxpass_neardis)     # 20cm가 넘는것은 20cm로 만듦
+        mp_nd = np.where(maxpass_neardis > 0.30, 0.30, maxpass_neardis)     # 30cm가 넘는 것은 30cm로 만듦
+        mp_nd_score = np.where(mp_nd < 0.10, -10, mp_nd)     # 10cm 보다 낮은 것은 -1로 만듦
+        # 만약 모든 범위가 10cm 보다 낮다면 turn
+        if np.max(mp_nd_score) == -10:
+            turn = True
 
-        """
-        # goal과 robot사이의 거리
-        global goal_location_x, goal_location_y
-        robot_to_goal_x = x_move_distance - goal_location_x
-        robot_to_goal_y = y_move_distance - goal_location_y
-        r_t_g_dis = np.hypot(robot_to_goal_x, robot_to_goal_y)  # sqrt(x**2 + y**2)
-        """
 
-        scoremap = 10 * mp_nd + pass_distance  # r_t_g_dis를 빼거나 해야됨
-        score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)
+
+
+        # 최종 스코어 <scoremap>
+        scoremap = 10 * mp_nd_score + pass_distance - r_g_score
+        score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)    # 스코어맵에서 가장 큰 값의 인덱스
 
         ####
         print('pass_distance\n', passsec)
@@ -97,6 +133,12 @@ class SelfDrive:
         turtle_vel.linear.x = Mps[score_row_col[0]]
         turtle_vel.angular.z = Radps[score_row_col[1]]
 
+        if turn:
+            turtle_vel.linear.x = 0
+            turtle_vel.angular.z = 1.0
+        if stop:
+            turtle_vel.linear.x = 0
+            turtle_vel.angular.z = 0
         self.publisher.publish(turtle_vel)
 
 
@@ -111,6 +153,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
