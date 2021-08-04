@@ -8,10 +8,10 @@ from geometry_msgs.msg import Twist, Pose, Quaternion, Point, PoseStamped
 from sensor_msgs.msg import LaserScan
 
 # 속도, 각속도의 개수
-mps_c = 2
+mps_c = 4
 rps_c = 13
 
-Mps = [0.15, 0.13]
+Mps = [0.15, 0.13, 0.11, 0.09]
 Radps = [0, 0.3, -0.3, 0.5, -0.5, 0.6, -0.6, 0.7, -0.7, 0.8, -0.8, 0.9, -0.9]   # 첫 원소는 무조건 0을 넣어야 함 (계산식이 다르기 때문)
 
 SCANran = np.full((1, 360), 0)  # 360도 측정 거리값 초기화
@@ -78,21 +78,21 @@ class SelfDrive:
             stop_point = "goal point"
             start_location_x = current_xyz.position.x
             start_location_y = current_xyz.position.y
-
+		
+        x = goal_location_x - current_xyz.position.x
+        y = goal_location_y - current_xyz.position.y
+        goal_radian = math.atan2(y, x)
         RtoGdis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
-        if RtoGdis < 0.40 and stop_point == "goal point":
+        #print('RtoGdis', RtoGdis)
+        if RtoGdis < 0.35 and stop_point == "goal point":
             stop_point = "stop_rot_goal"
-            x = goal_location_x - current_xyz.position.x
-            y = goal_location_y - current_xyz.position.y
+            
             goal_radian = math.atan2(y, x)
-            goal_location_x = start_location_x
-            goal_location_y = start_location_y
+            
 
 
-        if RtoGdis < 0.40 and stop_point == "starting point":
+        if RtoGdis < 0.35 and stop_point == "starting point":
             stop_point = "stop_rot_home"
-            x = goal_location_x - current_xyz.position.x
-            y = goal_location_y - current_xyz.position.y
             goal_radian = math.atan2(y, x)
 
         # 목표와 로봇사이 거리 스코어
@@ -102,7 +102,7 @@ class SelfDrive:
         r_g_path_len_x = goal_location_x - current_xyz.position.x + np.delete(path_len, 1, axis=2)
         r_g_path_len_y = goal_location_y - current_xyz.position.y + np.delete(path_len, 0, axis=2)
         r_g_dis = np.reshape(np.hypot(r_g_path_len_x, r_g_path_len_y), (10, mps_c, rps_c))
-        r_g_score = np.amin(r_g_dis, axis=0).reshape(1, -1)    # (1, rps_c), sqrt(x**2 + y**2)
+        r_g_score = np.amin(r_g_dis, axis=0)#.reshape(1, -1)    # (1, rps_c), sqrt(x**2 + y**2)
     """
     def mode(self, DWA_pub):
         global stop_point
@@ -115,6 +115,10 @@ class SelfDrive:
     def lds_callback(self, scan):#######만약 시간이 지나서 직선으로는 벽에 부딪힌걸로 되지만 벽을 넘는 가닥이라면..?
         global stop_point
         global SCANran
+        global goal_location_x
+        global goal_location_y
+        global start_location_x
+        global start_location_y
         turtle_vel = Twist()
         turn = False
 
@@ -160,37 +164,48 @@ class SelfDrive:
 
 
         # 최종 스코어 (장애물을 피하는 스코어맵의 top5를 구해 그 중 목표물과 가장 가까워 지는 스코어 선택)
-        scoremap = 10 * mp_nd_score + pass_distance
-        scoremap_rank = np.argsort(scoremap).reshape(1, -1)
-        top5_rgs = np.array([[r_g_score[0][scoremap_rank[0][0]], r_g_score[0][scoremap_rank[0][1]], r_g_score[0][scoremap_rank[0][2]],
-                              r_g_score[0][scoremap_rank[0][3]], r_g_score[0][scoremap_rank[0][4]]]])
-        score_row_col = np.unravel_index(scoremap_rank[0][np.argmax(top5_rgs, axis=None)], scoremap.shape)    # 최종 스코어를 골라서 인덱스를 구함
+        scoremap = 10 * mp_nd_score + pass_distance# - 0.01*r_g_score
+        #############r_g_score를 순위결정해서 행렬로 만들어서 0.1정도를 곱해 빼보기
+        r = np.argsort(r_g_score)
+        rr = 
+        #scoremap_rank = np.argsort(scoremap).reshape(1, -1)
+        #top5_rgs = np.array([[r_g_score[0][scoremap_rank[0][0]]]])##
+        #
+        
+        score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)    # 최종 스코어를 골라서 인덱스를 구함
 
         ####
-        print('r_g_score\n', r_g_score)
-        print('current_angle', current_angle.position.z)
-        print('goal_radian', goal_radian)
+        #print('r_g_score\n', r_g_score)
+        print('goal{}, current{}, ---{}'.format(goal_radian, current_angle.position.z, goal_radian- current_angle.position.z))
+        #print('goal_radian', goal_radian)
+        
         turtle_vel.linear.x = Mps[score_row_col[0]]
         turtle_vel.angular.z = Radps[score_row_col[1]]
 
         if turn:
             turtle_vel.linear.x = 0
-            turtle_vel.angular.z = 1.0
+            turtle_vel.angular.z = -1.0
             ########## stop_point로 보내는 값 바꿔야됨
 
-        if stop_point == "stop_goal" or stop_point == "stop_home":
+        if stop_point == "stop_rot_goal" or stop_point == "stop_rot_home":
             turtle_vel.linear.x = 0
             if -0.3 > (goal_radian - current_angle.position.z):
                 turtle_vel.angular.z = -0.5
             if 0.3 > (goal_radian - current_angle.position.z):
                 turtle_vel.angular.z = 0.5
+            
             if -0.3 < (current_angle.position.z - goal_radian) < 0.3:
                 turtle_vel.angular.z = 0
+                goal_location_x = start_location_x
+            	goal_location_y = start_location_y
                 if stop_point == "stop_rot_goal":
                     stop_point = "stop_goal"
                 elif stop_point == "stop_rot_home":
                     stop_point = "stop_home"
-
+        # 일단 멈추게 둔거임 고쳐야됨
+        if stop_point == "stop_goal":
+            turtle_vel.linear.x = 0
+            turtle_vel.angular.z = 0
         self.publisher.publish(turtle_vel)
 
 
