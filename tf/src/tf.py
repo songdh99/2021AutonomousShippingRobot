@@ -5,7 +5,7 @@ import rospy
 import tf
 import numpy as np
 from std_msgs.msg import Bool
-from geometry_msgs.msg import Pose, TransformStamped
+from geometry_msgs.msg import Pose
 
 
 class Transform():
@@ -15,7 +15,7 @@ class Transform():
         self.listener = tf.TransformListener()
         self.pos = Pose()
         self.aruco_check = False
-        self.mode = "a_about_c"
+        self.mode = "m_about_r"
 
     def tf_pub(self):
         if self.mode == "a_about_c":
@@ -24,10 +24,7 @@ class Transform():
                 rospy.loginfo("mode : %s", self.mode)
                 self.draw_rgb()
                 rospy.Subscriber('aruco_xyzw', Pose, self.draw_aruco)
-                self.mode = "a_about_m"
-
-        if self.mode == "a_about_m":
-            self.mode = "a_about_r"
+                self.mode = "a_about_r"
 
         if self.mode == "a_about_r":
             rospy.loginfo("mode : %s", self.mode)
@@ -81,9 +78,6 @@ class Transform():
                      rospy.Time.now(),
                      "aruco_pos",
                      "rgb_test")
-
-    def move_aruco(self):
-        
 
 
 def main():
