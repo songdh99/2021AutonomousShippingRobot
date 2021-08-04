@@ -8,10 +8,10 @@ from geometry_msgs.msg import Twist, Pose, Quaternion, Point, PoseStamped
 from sensor_msgs.msg import LaserScan
 
 # 속도, 각속도의 개수
-mps_c = 5
+mps_c = 2
 rps_c = 13
 
-Mps = [0.15, 0.13, 0.11, 0.09, 0.07]
+Mps = [0.15, 0.13]
 Radps = [0, 0.3, -0.3, 0.5, -0.5, 0.6, -0.6, 0.7, -0.7, 0.8, -0.8, 0.9, -0.9]   # 첫 원소는 무조건 0을 넣어야 함 (계산식이 다르기 때문)
 
 SCANran = np.full((1, 360), 0)  # 360도 측정 거리값 초기화
@@ -37,8 +37,8 @@ xy_move_distance = np.concatenate((np.reshape((x_move_distance), (10, -1, 1)), n
 current_xyz = Pose()
 current_angle = Pose()
 stop_point = String()
-goal_location_x = -0.717
-goal_location_y = -0.283
+goal_location_x = 0.5819
+goal_location_y = -0.5682
 start_location_x = 0.
 start_location_y = 0.
 goal_radian = 0.
@@ -80,7 +80,7 @@ class SelfDrive:
             start_location_y = current_xyz.position.y
 
         RtoGdis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
-        if RtoGdis < 0.45 and stop_point == "goal point":
+        if RtoGdis < 0.40 and stop_point == "goal point":
             stop_point = "stop_goal"
             x = goal_location_x - current_xyz.position.x
             y = goal_location_y - current_xyz.position.y
@@ -89,7 +89,7 @@ class SelfDrive:
             goal_location_y = start_location_y
 
 
-        if RtoGdis < 0.45 and stop_point == "starting point":
+        if RtoGdis < 0.40 and stop_point == "starting point":
             stop_point = "stop_home"
             x = goal_location_x - current_xyz.position.x
             y = goal_location_y - current_xyz.position.y
@@ -102,7 +102,7 @@ class SelfDrive:
         r_g_path_len_x = goal_location_x - current_xyz.position.x + np.delete(path_len, 1, axis=2)
         r_g_path_len_y = goal_location_y - current_xyz.position.y + np.delete(path_len, 0, axis=2)
         r_g_dis = np.reshape(np.hypot(r_g_path_len_x, r_g_path_len_y), (10, mps_c, rps_c))
-        r_g_score = np.amin(r_g_dis, axis=0) - np.trunc(np.amin(np.amin(r_g_dis, axis=0)))    # (1, rps_c), sqrt(x**2 + y**2)
+        r_g_score = np.amin(r_g_dis, axis=0)    # (1, rps_c), sqrt(x**2 + y**2)
     """
     def mode(self, DWA_pub):
         global stop_point
@@ -158,13 +158,17 @@ class SelfDrive:
 
 
 
-        # 최종 스코어 <scoremap>
-        scoremap = 10 * mp_nd_score + pass_distance - r_g_score
-        score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)    # 스코어맵에서 가장 큰 값의 인덱스
+        # 최종 스코어 (장애물을 피하는 스코어맵의 top5를 구해 그 중 목표물과 가장 가까워 지는 스코어 선택)
+        scoremap = 10 * mp_nd_score + pass_distance
+        scoremap_rank = np.argsort(scoremap)
+        top5_rgs = np.array([[r_g_score[scoremap_rank[0]], r_g_score[scoremap_rank[1]], r_g_score[scoremap_rank[2]],
+                              r_g_score[scoremap_rank[3]], r_g_score[scoremap_rank[4]]]])
+        score_row_col = np.unravel_index(scoremap_rank[np.argmax(top5_rgs, axis=None)], scoremap.shape)    # 최종 스코어를 골라서 인덱스를 구함
 
         ####
         print('r_g_score\n', r_g_score)
-
+        print('current_angle', current_angle.position.z)
+        print('goal_radian', goal_radian)
         turtle_vel.linear.x = Mps[score_row_col[0]]
         turtle_vel.angular.z = Radps[score_row_col[1]]
 
@@ -172,12 +176,13 @@ class SelfDrive:
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = 1.0
             ########## stop_point로 보내는 값 바꿔야됨
+        
         if stop_point == "stop_goal" or stop_point == "stop_home":
             turtle_vel.linear.x = 0
-            if -0.3 < (current_angle.position.z - goal_radian):
-                turtle_vel.angular.z = 0.5
-            if (current_angle.position.z - goal_radian) < 0.3:
+            if -0.3 > (goal_radian - current_angle.position.z):
                 turtle_vel.angular.z = -0.5
+            if 0.3 > (goal_radian - current_angle.position.z):
+                turtle_vel.angular.z = 0.5
             if -0.3 < (current_angle.position.z - goal_radian) < 0.3:
                 turtle_vel.angular.z = 0
 
@@ -195,7 +200,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
 
