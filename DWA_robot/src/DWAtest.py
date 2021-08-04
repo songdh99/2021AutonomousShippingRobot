@@ -37,8 +37,8 @@ xy_move_distance = np.concatenate((np.reshape((x_move_distance), (10, -1, 1)), n
 current_xyz = Pose()
 current_angle = Pose()
 stop_point = String()
-goal_location_x = 0.2392
-goal_location_y = -0.7449
+goal_location_x = 0.5819
+goal_location_y = -0.5682
 start_location_x = 0.
 start_location_y = 0.
 goal_radian = 0.
@@ -81,7 +81,7 @@ class SelfDrive:
 
         RtoGdis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
         if RtoGdis < 0.45 and stop_point == "goal point":
-            stop_point = "stop"
+            stop_point = "stop_goal"
             x = goal_location_x - current_xyz.position.x
             y = goal_location_y - current_xyz.position.y
             goal_radian = math.atan2(y, x)
@@ -90,7 +90,7 @@ class SelfDrive:
 
 
         if RtoGdis < 0.45 and stop_point == "starting point":
-            stop_point = "stop"
+            stop_point = "stop_home"
             x = goal_location_x - current_xyz.position.x
             y = goal_location_y - current_xyz.position.y
             goal_radian = math.atan2(y, x)
@@ -102,7 +102,7 @@ class SelfDrive:
         r_g_path_len_x = goal_location_x - current_xyz.position.x + np.delete(path_len, 1, axis=2)
         r_g_path_len_y = goal_location_y - current_xyz.position.y + np.delete(path_len, 0, axis=2)
         r_g_dis = np.reshape(np.hypot(r_g_path_len_x, r_g_path_len_y), (10, mps_c, rps_c))
-        r_g_score = np.amin(r_g_dis, axis=0) - np.amin(r_g_dis, axis=0).mean()  # (1, rps_c), sqrt(x**2 + y**2)
+        r_g_score = np.amin(r_g_dis, axis=0) - np.trunc(np.amin(np.amin(r_g_dis, axis=0)))    # (1, rps_c), sqrt(x**2 + y**2)
     """
     def mode(self, DWA_pub):
         global stop_point
@@ -150,7 +150,7 @@ class SelfDrive:
                 k = (passsec[i][j] - 2) % 1
                 maxpass_neardis[i][j] = neardis[k][i][j]    # (mps_c, rps_c)
         mp_nd = np.where(maxpass_neardis > 0.30, 0.30, maxpass_neardis)     # 30cm가 넘는 것은 30cm로 만듦
-        mp_nd_score = np.where(mp_nd < 0.10, -100, mp_nd)     # 10cm 보다 낮은 것은 -1로 만듦
+        mp_nd_score = np.where(mp_nd < 0.12, -100, mp_nd)     # 10cm 보다 낮은 것은 -1로 만듦
         # 만약 모든 범위가 10cm 보다 낮다면 turn
         if np.max(mp_nd_score) == -100:
             turn = True
@@ -159,7 +159,7 @@ class SelfDrive:
 
 
         # 최종 스코어 <scoremap>
-        scoremap = 10 * mp_nd_score + pass_distance - 10 * r_g_score
+        scoremap = 10 * mp_nd_score + pass_distance - r_g_score
         score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)    # 스코어맵에서 가장 큰 값의 인덱스
 
         ####
@@ -171,10 +171,15 @@ class SelfDrive:
         if turn:
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = 1.0
-        if stop_point == "stop":
+            ########## stop_point로 보내는 값 바꿔야됨
+        if stop_point == "stop_goal" or stop_point == "stop_home":
             turtle_vel.linear.x = 0
-            turtle_vel.angular.z = goal_radian/6
-
+            if -0.3 < (current_angle.position.z - goal_radian):
+                turtle_vel.angular.z = 0.5
+            if (current_angle.position.z - goal_radian) < 0.3:
+                turtle_vel.angular.z = -0.5
+            if -0.3 < (current_angle.position.z - goal_radian) < 0.3:
+                turtle_vel.angular.z = 0
 
         self.publisher.publish(turtle_vel)
 
