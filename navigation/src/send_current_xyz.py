@@ -9,7 +9,7 @@ def main():
 	listener = tf.TransformListener()
 	pub = rospy.Publisher('current_xyz', Pose, queue_size=1)
 	pub2 = rospy.Publisher('current_angle', Pose, queue_size=1)
-	rate = rospy.Rate(1)
+	rate = rospy.Rate(10)
 
 	while not rospy.is_shutdown():
 		try:
@@ -37,3 +37,4 @@ if __name__ == '__main__':
 	except rospy.ROSInterruptException:
 		pass
 		
+
