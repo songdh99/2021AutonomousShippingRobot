@@ -37,8 +37,8 @@ xy_move_distance = np.concatenate((np.reshape((x_move_distance), (10, -1, 1)), n
 current_xyz = Pose()
 current_angle = Pose()
 stop_point = String()
-goal_location_x = 0.5819
-goal_location_y = -0.5682
+goal_location_x = -0.5269
+goal_location_y = -0.1894
 start_location_x = 0.
 start_location_y = 0.
 goal_radian = 0.
@@ -81,7 +81,7 @@ class SelfDrive:
 
         RtoGdis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
         if RtoGdis < 0.40 and stop_point == "goal point":
-            stop_point = "stop_goal"
+            stop_point = "stop_rot_goal"
             x = goal_location_x - current_xyz.position.x
             y = goal_location_y - current_xyz.position.y
             goal_radian = math.atan2(y, x)
@@ -90,7 +90,7 @@ class SelfDrive:
 
 
         if RtoGdis < 0.40 and stop_point == "starting point":
-            stop_point = "stop_home"
+            stop_point = "stop_rot_home"
             x = goal_location_x - current_xyz.position.x
             y = goal_location_y - current_xyz.position.y
             goal_radian = math.atan2(y, x)
@@ -102,7 +102,7 @@ class SelfDrive:
         r_g_path_len_x = goal_location_x - current_xyz.position.x + np.delete(path_len, 1, axis=2)
         r_g_path_len_y = goal_location_y - current_xyz.position.y + np.delete(path_len, 0, axis=2)
         r_g_dis = np.reshape(np.hypot(r_g_path_len_x, r_g_path_len_y), (10, mps_c, rps_c))
-        r_g_score = np.amin(r_g_dis, axis=0)    # (1, rps_c), sqrt(x**2 + y**2)
+        r_g_score = np.amin(r_g_dis, axis=0).reshape(1, -1)    # (1, rps_c), sqrt(x**2 + y**2)
     """
     def mode(self, DWA_pub):
         global stop_point
@@ -113,13 +113,14 @@ class SelfDrive:
 
 
     def lds_callback(self, scan):#######만약 시간이 지나서 직선으로는 벽에 부딪힌걸로 되지만 벽을 넘는 가닥이라면..?
+        global stop_point
+        global SCANran
         turtle_vel = Twist()
         turn = False
 
         dfors = np.degrees(step * np.array(Radps))   # degree for scan(10, 1, rps_c)
         dfors = np.int32(np.rint(dfors))   # 반올림 후 int형으로 변경
         # <SCANran> 측정 거리값 360
-        global SCANran
         SCANran = np.array(scan.ranges)     # 튜플 타입인 scan.ranges를 행렬로 변환 대입
 
         # <five_Radps_scandistance>
@@ -160,10 +161,10 @@ class SelfDrive:
 
         # 최종 스코어 (장애물을 피하는 스코어맵의 top5를 구해 그 중 목표물과 가장 가까워 지는 스코어 선택)
         scoremap = 10 * mp_nd_score + pass_distance
-        scoremap_rank = np.argsort(scoremap)
-        top5_rgs = np.array([[r_g_score[scoremap_rank[0]], r_g_score[scoremap_rank[1]], r_g_score[scoremap_rank[2]],
-                              r_g_score[scoremap_rank[3]], r_g_score[scoremap_rank[4]]]])
-        score_row_col = np.unravel_index(scoremap_rank[np.argmax(top5_rgs, axis=None)], scoremap.shape)    # 최종 스코어를 골라서 인덱스를 구함
+        scoremap_rank = np.argsort(scoremap).reshape(1, -1)
+        top5_rgs = np.array([[r_g_score[0][scoremap_rank[0][0]], r_g_score[0][scoremap_rank[0][1]], r_g_score[0][scoremap_rank[0][2]],
+                              r_g_score[0][scoremap_rank[0][3]], r_g_score[0][scoremap_rank[0][4]]]])
+        score_row_col = np.unravel_index(scoremap_rank[0][np.argmax(top5_rgs, axis=None)], scoremap.shape)    # 최종 스코어를 골라서 인덱스를 구함
 
         ####
         print('r_g_score\n', r_g_score)
@@ -176,7 +177,7 @@ class SelfDrive:
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = 1.0
             ########## stop_point로 보내는 값 바꿔야됨
-        
+
         if stop_point == "stop_goal" or stop_point == "stop_home":
             turtle_vel.linear.x = 0
             if -0.3 > (goal_radian - current_angle.position.z):
@@ -185,6 +186,10 @@ class SelfDrive:
                 turtle_vel.angular.z = 0.5
             if -0.3 < (current_angle.position.z - goal_radian) < 0.3:
                 turtle_vel.angular.z = 0
+                if stop_point == "stop_rot_goal":
+                    stop_point = "stop_goal"
+                elif stop_point == "stop_rot_home":
+                    stop_point = "stop_home"
 
         self.publisher.publish(turtle_vel)
 
