@@ -1,7 +1,9 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*- 
+
 import cv2
 import glob
-#import os
+import os
 import rospy
 import numpy as np
 from cv2 import aruco
@@ -16,6 +18,7 @@ def cal():
     allCorners = []
     allIds = []
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.00001)
+    #glob() 안에 사진 위치를 올바르게 적어야함
     images = glob.glob('/home/x/workspace/aruco/aruco/src/camera_cal_img/cal*.png')
     for im in images:
         print("=> Processing image {0}".format(im))
@@ -62,8 +65,9 @@ def calibrate_charuco(allCorners, allIds, imsize):
 
 
 def detect_marker(mtx, dist):
-    #os.system('sudo modprobe bcm2835-v4l2')
-    cam = cv2.VideoCapture(0)
+    os.system('sudo modprobe bcm2835-v4l2')
+    #cam = cv2.VideoCapture(0)
+    cam = cv2.VideoCapture(-1)
     param = cv2.aruco.DetectorParameters_create()
     aruco_pub = rospy.Publisher('aruco_xyzw', Pose, queue_size=10)
     check_pub = rospy.Publisher('check_aruco', Bool, queue_size=10)
@@ -77,23 +81,18 @@ def detect_marker(mtx, dist):
             coners, ids, point = cv2.aruco.detectMarkers(gray_frame, aruco_dict, parameters=param)
             if np.all(ids != None):
                 check.data = True
-                rvecs, tvecs = cv2.aruco.estimatePoseSingleMarkers(coners, 0.04, mtx, dist)
+                #rvecs, tvecs = cv2.aruco.estimatePoseSingleMarkers(coners, 0.04, mtx, dist)
+                rvecs, tvecs, objPoints = cv2.aruco.estimatePoseSingleMarkers(coners, 0.04, mtx, dist)
                 frame = cv2.aruco.drawAxis(frame, mtx, dist, rvecs[0], tvecs[0], 0.04)
                 rvecs_msg = rvecs.tolist()
                 tvecs_msg = tvecs.tolist()
-                rvecs_msg_x = rvecs_msg[0][0][0]
-                rvecs_msg_y = rvecs_msg[0][0][1]
-                rvecs_msg_z = rvecs_msg[0][0][2]
-                tvecs_msg_x = tvecs_msg[0][0][0]
-                tvecs_msg_y = tvecs_msg[0][0][1]
-                tvecs_msg_z = tvecs_msg[0][0][2]
-                aruco.orientation.x = rvecs_msg_x
-                aruco.orientation.y = rvecs_msg_y
-                aruco.orientation.z = rvecs_msg_z
-                aruco.position.x = tvecs_msg_x
-                aruco.position.y = tvecs_msg_y
-                aruco.position.z = tvecs_msg_z
-                rospy.loginfo_once("{}".format(aruco))
+                aruco.orientation.x = rvecs_msg[0][0][0]
+                aruco.orientation.y = rvecs_msg[0][0][1]
+                aruco.orientation.z = rvecs_msg[0][0][2]
+                aruco.position.x = tvecs_msg[0][0][0]
+                aruco.position.y = tvecs_msg[0][0][1]
+                aruco.position.z = tvecs_msg[0][0][2]
+                rospy.loginfo("{}".format(aruco))
                 aruco_pub.publish(aruco)
             else:
                 check.data = False

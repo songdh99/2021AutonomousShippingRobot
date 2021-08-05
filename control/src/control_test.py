@@ -60,7 +60,7 @@ class Tower():
 			self.mani_pub.publish("pick")
 			self.mode = "pick_aruco_check"
 
-
+		#aruco를 잡았는지 확인
 		if self.mode == "pick_aruco_check":
 			rospy.loginfo("mode : %s", self.mode)
 			rospy.Subscriber('fin_call_pub', Bool, self.pick_check_callback)
