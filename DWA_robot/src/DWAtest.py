@@ -8,10 +8,10 @@ from geometry_msgs.msg import Twist, Pose, Quaternion, Point, PoseStamped
 from sensor_msgs.msg import LaserScan
 
 # 속도, 각속도의 개수
-mps_c = 4
+mps_c = 2
 rps_c = 13
 
-Mps = [0.15, 0.13, 0.11, 0.09]
+Mps = [0.15, 0.13]
 Radps = [0, 0.3, -0.3, 0.5, -0.5, 0.6, -0.6, 0.7, -0.7, 0.8, -0.8, 0.9, -0.9]   # 첫 원소는 무조건 0을 넣어야 함 (계산식이 다르기 때문)
 
 SCANran = np.full((1, 360), 0)  # 360도 측정 거리값 초기화
@@ -37,8 +37,8 @@ xy_move_distance = np.concatenate((np.reshape((x_move_distance), (10, -1, 1)), n
 current_xyz = Pose()
 current_angle = Pose()
 stop_point = String()
-goal_location_x = -0.5269
-goal_location_y = -0.1894
+goal_location_x = 1.3257
+goal_location_y = -1.4092
 start_location_x = 0.
 start_location_y = 0.
 goal_radian = 0.
@@ -57,10 +57,12 @@ class SelfDrive:
         """
         rospy.Subscriber('DWA_pub', String, self.mode)
         """
-        rospy.Rate(10)
+        rospy.Rate(20)
 
     def current_angle(self, angle):
-        current_angle.position.z = (angle.position.z * 360) * math.pi / 180   # angle.position.z가 360도가 1로 나타남
+        current_angle.position.z = (angle.position.z * 360)   # angle.position.z가 360도가 1로 나타남
+        if current_angle.position.z < 0:
+            current_angle.position.z += 360
 
     def current_xyz(self, xyz):
         global retry
@@ -81,17 +83,19 @@ class SelfDrive:
 		
         x = goal_location_x - current_xyz.position.x
         y = goal_location_y - current_xyz.position.y
-        goal_radian = math.atan2(y, x)
+        goal_radian = math.atan2(y, x) * 180/ math.pi
+        if goal_radian < 0:
+            goal_radian += 360
         RtoGdis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
         #print('RtoGdis', RtoGdis)
-        if RtoGdis < 0.35 and stop_point == "goal point":
+        if RtoGdis < 0.45 and stop_point == "goal point":
             stop_point = "stop_rot_goal"
             
             goal_radian = math.atan2(y, x)
             
 
 
-        if RtoGdis < 0.35 and stop_point == "starting point":
+        if RtoGdis < 0.45 and stop_point == "starting point":
             stop_point = "stop_rot_home"
             goal_radian = math.atan2(y, x)
 
@@ -119,6 +123,9 @@ class SelfDrive:
         global goal_location_y
         global start_location_x
         global start_location_y
+        global goal_radian
+        global current_angle
+        
         turtle_vel = Twist()
         turn = False
 
@@ -164,19 +171,24 @@ class SelfDrive:
 
 
         # 최종 스코어 (장애물을 피하는 스코어맵의 top5를 구해 그 중 목표물과 가장 가까워 지는 스코어 선택)
-        scoremap = 10 * mp_nd_score + pass_distance# - 0.01*r_g_score
-        #############r_g_score를 순위결정해서 행렬로 만들어서 0.1정도를 곱해 빼보기
-        r = np.argsort(r_g_score)
-        rr = 
-        #scoremap_rank = np.argsort(scoremap).reshape(1, -1)
-        #top5_rgs = np.array([[r_g_score[0][scoremap_rank[0][0]]]])##
-        #
         
+        #############r_g_score를 순위결정해서 행렬로 만들어서 0.1정도를 곱해 빼보기
+        r = np.argsort(r_g_score, axis=None)
+        rr = np.arange(0, mps_c * rps_c).reshape(1, -1)
+        k = 0
+        for i in range(0, mps_c):
+            for j in range(0, rps_c):
+                index = np.unravel_index(r[i * j], r.shape)
+                rr[0][r[index[0]]] = r[k]
+                k += 1
+        rr = np.reshape(rr, (mps_c, rps_c))
+        scoremap = 10 * mp_nd_score + pass_distance - 0.00001 *rr
         score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)    # 최종 스코어를 골라서 인덱스를 구함
 
         ####
-        #print('r_g_score\n', r_g_score)
-        print('goal{}, current{}, ---{}'.format(goal_radian, current_angle.position.z, goal_radian- current_angle.position.z))
+        #print('rr\n', rr)
+        #print('scoremap', scoremap)
+        print('goal{}, current{}, ---{}'.format(goal_radian, current_angle.position.z, (goal_radian - current_angle.position.z)))
         #print('goal_radian', goal_radian)
         
         turtle_vel.linear.x = Mps[score_row_col[0]]
@@ -190,11 +202,11 @@ class SelfDrive:
         if stop_point == "stop_rot_goal" or stop_point == "stop_rot_home":
             turtle_vel.linear.x = 0
             if -0.3 > (goal_radian - current_angle.position.z):
-                turtle_vel.angular.z = -0.5
-            if 0.3 > (goal_radian - current_angle.position.z):
                 turtle_vel.angular.z = 0.5
+            if 0.3 > (goal_radian - current_angle.position.z):
+                turtle_vel.angular.z = -0.5
             
-            if -0.3 < (current_angle.position.z - goal_radian) < 0.3:
+            if -0.3 < (goal_radian - current_angle.position.z) < 0.3:
                 turtle_vel.angular.z = 0
                 goal_location_x = start_location_x
             	goal_location_y = start_location_y
