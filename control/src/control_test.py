@@ -49,7 +49,7 @@ class Tower():
 		#aruco에 대한 tf가 끝났는지 확인
 		if self.mode == "aruco_tf_check":
 			rospy.Subscriber('aruco_tf_check', Bool, self.aruco_tf_check_callback)
-			if self.find_aruco_check:
+			if self.aruco_tf_check:
 				rospy.loginfo("Finish aruco tf :)")
 				self.aruco_tf_pub.publish(False)
 				self.mode = "move_aruco"

@@ -34,10 +34,6 @@ def main():
             pose.position.x = trans[0]
             pose.position.y = trans[1]
             pose.position.z = trans[2]
-            # pose.orientation.x = rot[0]
-            # pose.orientation.y = rot[1]
-            # pose.orientation.z = rot[2]
-            # pose.orientation.w = rot[3]
             pose.orientation.x = 0
             pose.orientation.y = 0
             pose.orientation.z = 0
@@ -49,3 +45,10 @@ def main():
         elif not aruco_check:
             aruco_tf_check_pub.publish(False)
         rate.sleep()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except rospy.ROSInterruptException:
+        pass

@@ -39,7 +39,7 @@ def draw_cam(mani_pose):
                 "mani_pose",
                 "/base_link")
 
-    br.sendTransform((-0.06, 0, 0.04), (0, 0, 0, 1), rospy.Time.now(), "cam_test", "mani_pose")
+    br.sendTransform((-0.163, 0, 0.05), (0, 0, 0, 1), rospy.Time.now(), "cam_test", "mani_pose")
 
 #카메라 축에서 로봇 축으로 tf
 def draw_rgb():
