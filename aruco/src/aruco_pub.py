@@ -93,6 +93,7 @@ def detect_marker(mtx, dist):
                 aruco.position.x = tvecs_msg_x
                 aruco.position.y = tvecs_msg_y
                 aruco.position.z = tvecs_msg_z
+                rospy.loginfo_once("{}".format(aruco))
                 aruco_pub.publish(aruco)
             else:
                 check.data = False

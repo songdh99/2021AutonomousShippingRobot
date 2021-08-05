@@ -59,8 +59,8 @@ class Transform():
         self.br.sendTransform((mani_pose.position.x, mani_pose.position.y, mani_pose.position.z),
                      (mani_pose.orientation.x, mani_pose.orientation.y, mani_pose.orientation.z, mani_pose.orientation.w),
                      rospy.Time.now(),
-                     "tb3_1/mani_pose",
-                     "tb3_1/base_link")
+                     "mani_pose",
+                     "base_link")
 
     #control에서 aruco 발견 여부 확인
     def aruco_tf_callback(self, check):
