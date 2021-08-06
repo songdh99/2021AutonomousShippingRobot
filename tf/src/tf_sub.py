@@ -17,7 +17,7 @@ def draw_cam(mani_pose):
                 "mani_pose",
                 "/base_link")
 
-    br.sendTransform((-0.163, 0, 0.05), (0, 0, 0, 1), rospy.Time.now(), "cam_test", "mani_pose")
+    br.sendTransform((-0.06, 0, 0.04), (0, 0, 0, 1), rospy.Time.now(), "cam_test", "mani_pose")
 
 #카메라 축에서 로봇 축으로 tf
 def draw_rgb():
@@ -39,14 +39,7 @@ def draw_aruco(aruco_pos):
 
     draw_rgb()
 
-    # x,y,z,w = tf.transformations.quaternion_from_euler(aruco_pos.orientation.x, aruco_pos.orientation.y, aruco_pos.orientation.z)
-    angle = np.sqrt(aruco_pos.orientation.x * aruco_pos.orientation.x + aruco_pos.orientation.y * aruco_pos.orientation.y + aruco_pos.orientation.z * aruco_pos.orientation.z)
-    cosa = np.cos(angle * 0.5)
-    sina = np.sin(angle * 0.5)
-    x = aruco_pos.orientation.x * sina / angle
-    y = aruco_pos.orientation.y * sina / angle
-    z = aruco_pos.orientation.z * sina / angle
-    w = cosa
+    x,y,z,w = tf.transformations.quaternion_from_euler(aruco_pos.orientation.x, aruco_pos.orientation.y, aruco_pos.orientation.z)
 
     br.sendTransform((aruco_pos.position.x, aruco_pos.position.y, aruco_pos.position.z),
                     (x, y, z, w),

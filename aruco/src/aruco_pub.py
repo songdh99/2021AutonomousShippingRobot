@@ -82,8 +82,8 @@ def detect_marker(mtx, dist):
             if np.all(ids != None):
                 check.data = True
                 #rvecs, tvecs = cv2.aruco.estimatePoseSingleMarkers(coners, 0.04, mtx, dist)
-                rvecs, tvecs, objPoints = cv2.aruco.estimatePoseSingleMarkers(coners, 0.04, mtx, dist)
-                frame = cv2.aruco.drawAxis(frame, mtx, dist, rvecs[0], tvecs[0], 0.04)
+                rvecs, tvecs, objPoints = cv2.aruco.estimatePoseSingleMarkers(coners, 0.02, mtx, dist)
+                frame = cv2.aruco.drawAxis(frame, mtx, dist, rvecs[0], tvecs[0], 0.02)
                 rvecs_msg = rvecs.tolist()
                 tvecs_msg = tvecs.tolist()
                 aruco.orientation.x = rvecs_msg[0][0][0]
