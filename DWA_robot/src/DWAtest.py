@@ -49,6 +49,7 @@ goal_radian = 0.
 retry = 0
 r_g_score = np.arange(0, rps_c)
 o = 0
+n = 0
 DWA_mode = String()
 
 
@@ -125,6 +126,7 @@ class SelfDrive:
         global current_angle
         global wherestop
         global DWA_mode
+        global n
 
         turtle_vel = Twist()
         turn = False
@@ -200,17 +202,19 @@ class SelfDrive:
 
         # 목표와 20cm이내로 들게
         if wherestop == "stop_rot":
-            turtle_vel.linear.x = 0.2
+            turtle_vel.linear.x = 0.1
+            turtle_vel.angular.z = 0
             # 20cm 이내로 들게 되면 curren_xyz 함수에서 wherestop = "stop_adv"
 
-
+##########################mani가 집는 동작을 완료 후 control에서 뭘 어떻게 보냈는지 까먹음
         if wherestop == "stop_adv":
             stop_point.data = "stop"
-            if stop_point.data == "stop":
-                turtle_vel.linear.x = 0
-                turtle_vel.angular.z = 0
+            turtle_vel.linear.x = 0
+            turtle_vel.angular.z = 0
+            if n == 0:
                 goal_location_x = start_location_x
                 goal_location_y = start_location_y
+                n += 1
 
         if DWA_mode == "patrol" or DWA_mode == "home":
             self.publisher.publish(turtle_vel)
