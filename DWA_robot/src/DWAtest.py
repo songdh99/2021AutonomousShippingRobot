@@ -91,12 +91,12 @@ class SelfDrive:
             goal_radian += 360
         RtoGdis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
         # print('RtoGdis', RtoGdis)
-        if RtoGdis < 0.25 and wherestop == "goal point":
+        if RtoGdis < 0.30 and wherestop == "goal point":
             wherestop = "stop_rot_goal"
 
             # goal_radian = math.atan2(y, x)
 
-        if RtoGdis < 0.25 and wherestop == "starting point":
+        if RtoGdis < 0.30 and wherestop == "starting point":
             wherestop = "stop_rot_home"
             # goal_radian = math.atan2(y, x)
 
