@@ -20,7 +20,7 @@ five_Radps_scandistance = np.full((10, 1, rps_c), 0.)    # 10스텝까지의 다
 # 한번 계산하고 계속 사용하기 위해 함수 밖에 작성
 MpsAr = np.array(Mps).reshape(mps_c, 1)
 RadpsAr = np.delete(np.array(Radps), 0)  # 각속도가 0일땐 거리계산식이 달라지므로 제외 후 따로 계산
-step = 0.1 * np.arange(1, 11).reshape(10, 1, 1)
+step = 0.15 * np.arange(1, 11).reshape(10, 1, 1)
 zeroRadpsAr = MpsAr * step   # 각속도가 0일때 (10, mps_c, 1)
 distancestep = (2 * np.sin(RadpsAr * step / 2) / RadpsAr * MpsAr)   # (10, mps_c, rps_c-1)
 fulldistancesteps = np.concatenate((zeroRadpsAr, distancestep), axis=2) + 0.3  # (10, mps_c, rps_c) 로봇의 크기보정을 위해 + 0.2
@@ -37,31 +37,33 @@ xy_move_distance = np.concatenate((np.reshape((x_move_distance), (10, -1, 1)), n
 current_xyz = Pose()
 current_angle = Pose()
 stop_point = String()
-goal_location_x = 1.3257
-goal_location_y = -1.4092
+wherestop = String()
+goal_location_x = -1.1133
+goal_location_y = 0.6529
 start_location_x = 0.
 start_location_y = 0.
 goal_radian = 0.
 retry = 0
 r_g_score = np.arange(0, rps_c)
+o = 0
+DWA_mode = String()
 
 class SelfDrive:
 
     def __init__(self, publisher):
         self.publisher = publisher
         self.stop_point = rospy.Publisher('stop_point', String, queue_size=1)
-
+        rospy.Subscriber('DWA_pub', String, self.check_mode)
         rospy.Subscriber('current_xyz', Pose, self.current_xyz)
         rospy.Subscriber('current_angle', Pose, self.current_angle)
-        """
-        rospy.Subscriber('DWA_pub', String, self.mode)
-        """
+        
         
 
     def current_angle(self, angle):
-        current_angle.position.z = (angle.position.z * 360)   # angle.position.z가 360도가 1로 나타남
+        current_angle.position.z = angle.position.z * 180 / math.pi  # angle.position.z가 360도가 1로 나타남
         if current_angle.position.z < 0:
             current_angle.position.z += 360
+        
 
     def current_xyz(self, xyz):
         global retry
@@ -72,11 +74,12 @@ class SelfDrive:
         global start_location_x
         global start_location_y
         global goal_radian
+        global wherestop
         current_xyz.position.x = xyz.position.x
         current_xyz.position.y = xyz.position.y
         retry += 1
         if retry == 1:
-            stop_point = "goal point"
+            wherestop = "goal point"
             start_location_x = current_xyz.position.x
             start_location_y = current_xyz.position.y
 		
@@ -86,16 +89,16 @@ class SelfDrive:
         if goal_radian < 0:
             goal_radian += 360
         RtoGdis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
-        print('RtoGdis', RtoGdis)
-        if RtoGdis < 0.40 and stop_point == "goal point":
-            stop_point = "stop_rot_goal"
+        #print('RtoGdis', RtoGdis)
+        if RtoGdis < 0.25 and wherestop == "goal point":
+            wherestop = "stop_rot_goal"
             
             #goal_radian = math.atan2(y, x)
             
 
 
-        if RtoGdis < 0.40 and stop_point == "starting point":
-            stop_point = "stop_rot_home"
+        if RtoGdis < 0.25 and wherestop == "starting point":
+            wherestop = "stop_rot_home"
             #goal_radian = math.atan2(y, x)
 
         # 목표와 로봇사이 거리 스코어
@@ -105,15 +108,8 @@ class SelfDrive:
         r_g_path_len_x = goal_location_x - current_xyz.position.x + np.delete(path_len, 1, axis=2)
         r_g_path_len_y = goal_location_y - current_xyz.position.y + np.delete(path_len, 0, axis=2)
         r_g_dis = np.reshape(np.hypot(r_g_path_len_x, r_g_path_len_y), (10, mps_c, rps_c))
-        r_g_score = RtoGdis - r_g_dis[5]#np.amin(r_g_dis, axis=0)#.reshape(1, -1)    # (1, rps_c), sqrt(x**2 + y**2)
+        r_g_score = RtoGdis - r_g_dis[5]    #np.amin(r_g_dis, axis=0)#.reshape(1, -1)    # (1, rps_c), sqrt(x**2 + y**2)
         #print('', r_g_dis[3])
-    """
-    def mode(self, DWA_pub):
-        global stop_point
-        if DWA_pub == "집었음":    ###########고쳐야됨
-            stop_point = "starting point"
-    """
-
 
 
     def lds_callback(self, scan):#######만약 시간이 지나서 직선으로는 벽에 부딪힌걸로 되지만 벽을 넘는 가닥이라면..?
@@ -125,7 +121,9 @@ class SelfDrive:
         global start_location_y
         global goal_radian
         global current_angle
-        
+        global wherestop
+        global DWA_mode
+
         turtle_vel = Twist()
         turn = False
 
@@ -176,7 +174,7 @@ class SelfDrive:
         score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)    # 최종 스코어를 골라서 인덱스를 구함
 
         ####
-        print('rr\n', scoremap)
+        #print('rr\n', scoremap)
         #print('scoremap', scoremap)
         #print('goal{}, current{}, ---{}'.format(goal_radian, current_angle.position.z, (goal_radian - current_angle.position.z)))
         #print('goal_radian', goal_radian)
@@ -189,27 +187,40 @@ class SelfDrive:
             turtle_vel.angular.z = -1.0
             ########## stop_point로 보내는 값 바꿔야됨
 
-        if stop_point == "stop_rot_goal" or stop_point == "stop_rot_home":
+        if wherestop == "stop_rot_goal" or wherestop == "stop_rot_home":
             turtle_vel.linear.x = 0
-            if -30 > (goal_radian - current_angle.position.z):
-                turtle_vel.angular.z = 0.5
-            if 30 > (goal_radian - current_angle.position.z):
-                turtle_vel.angular.z = -0.5
-            
-            if -30 < (goal_radian - current_angle.position.z) < 30:
+            if -7 > (goal_radian - current_angle.position.z):
+                turtle_vel.angular.z = -0.2
+            if 7 < (goal_radian - current_angle.position.z):
+                turtle_vel.angular.z = 0.2
+            if -7 < (goal_radian - current_angle.position.z) < 7:
                 turtle_vel.angular.z = 0
                 goal_location_x = start_location_x
                 goal_location_y = start_location_y
-                if stop_point == "stop_rot_goal":
-                    stop_point = "stop_goal"
-                elif stop_point == "stop_rot_home":
-                    stop_point = "stop_home"
-        # 일단 멈추게 둔거임 고쳐야됨
-        if stop_point == "stop_goal":
-            turtle_vel.linear.x = 0
-            turtle_vel.angular.z = 0
-        self.publisher.publish(turtle_vel)
+                wherestop = "stop_rot"
 
+        if wherestop == "stop_rot":
+            stop_point.data = "stop"
+            if stop_point.data == "stop":
+                turtle_vel.linear.x = 0
+                turtle_vel.angular.z = 0
+                goal_location_x = start_location_x
+                goal_location_y = start_location_y
+                
+        if DWA_mode == "patrol" or DWA_mode == "home":
+            self.publisher.publish(turtle_vel)
+        self.stop_point.publish(stop_point)
+        
+        print('wherestop {}, stop_point {}, DWA_mode {}'.format(wherestop, stop_point.data, DWA_mode))
+
+
+    def check_mode(self, DWA_pub):
+        global o
+        global DWA_mode
+        DWA_mode = DWA_pub.data    ###########고쳐야됨
+        if DWA_mode == "home" and o == 0:
+            wherestop = "starting point"
+            o = 1
 
 def main():
     rospy.init_node('DWA')
@@ -217,6 +228,7 @@ def main():
     driver = SelfDrive(publisher)
     subscriber = rospy.Subscriber('scan', LaserScan,
                                   lambda scan: driver.lds_callback(scan))
+    
     #rate = rospy.Rate(1000)
     #rate.sleep()
     rospy.spin()
@@ -224,7 +236,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
 
