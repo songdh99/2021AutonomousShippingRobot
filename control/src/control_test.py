@@ -7,7 +7,7 @@ from std_msgs.msg import Bool, String
 class Tower():
 	def __init__(self):
 		self.DWA_pub = rospy.Publisher('DWA_pub', String, queue_size=10)
-		self.aruco_tf_pub = rospy.Publisher('aruco_tf_start', String, queue_size=10)
+		self.aruco_tf_pub = rospy.Publisher('aruco_tf_start', Bool, queue_size=10)
 		self.mani_pub = rospy.Publisher('pick_or_place_pub', String, queue_size=10)
 		self.mode = "patrol"
 		self.stop_check = False
