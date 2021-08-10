@@ -41,8 +41,8 @@ current_xyz = Pose()
 current_angle = Pose()
 stop_point = String()
 wherestop = String()
-goal_location_x = -1.1449
-goal_location_y = 0.6164
+goal_location_x = 0.4283
+goal_location_y = -1.6591
 start_location_x = 0.
 start_location_y = 0.
 goal_radian = 0.
@@ -101,7 +101,7 @@ class SelfDrive:
             wherestop = "stop_rot_home"
             # goal_radian = math.atan2(y, x)
 
-        if RtoGdis < 0.20:
+        if RtoGdis < 0.25:
             wherestop = "stop_adv"
 
         # 목표와 로봇사이 거리 스코어
@@ -192,11 +192,11 @@ class SelfDrive:
         # 목표에 정면으로 바라보게
         if wherestop == "stop_rot_goal" or wherestop == "stop_rot_home":
             turtle_vel.linear.x = 0
-            if -6 > (goal_radian - current_angle.position.z):
-                turtle_vel.angular.z = -0.2
-            if 6 < (goal_radian - current_angle.position.z):
-                turtle_vel.angular.z = 0.2
-            if -6 < (goal_radian - current_angle.position.z) < 6:
+            if -2.5 > (goal_radian - current_angle.position.z):
+                turtle_vel.angular.z = -0.14
+            if 2.5 < (goal_radian - current_angle.position.z):
+                turtle_vel.angular.z = 0.14
+            if -2.5 < (goal_radian - current_angle.position.z) < 2.5:
                 turtle_vel.angular.z = 0
                 wherestop = "stop_rot"
 
@@ -216,8 +216,8 @@ class SelfDrive:
                 goal_location_y = start_location_y
                 n += 1
 
-        if DWA_mode == "patrol" or DWA_mode == "home":
-            self.publisher.publish(turtle_vel)
+        #if DWA_mode == "patrol" or DWA_mode == "home":
+        self.publisher.publish(turtle_vel)
         self.stop_point.publish(stop_point)
 
         print('wherestop {}, stop_point {}, DWA_mode {}'.format(wherestop, stop_point.data, DWA_mode))
