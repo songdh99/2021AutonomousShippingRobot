@@ -91,7 +91,7 @@ class SelfDrive:
         if goal_radian < 0:
             goal_radian += 360
         RtoGdis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
-        # print('RtoGdis', RtoGdis)
+        print('RtoGdis', RtoGdis)
         if RtoGdis < 0.30 and wherestop == "goal point":
             wherestop = "stop_rot_goal"
 
@@ -225,6 +225,7 @@ class SelfDrive:
     def check_mode(self, DWA_pub):
         global o
         global DWA_mode
+        global wherestop
         DWA_mode = DWA_pub.data  ###########고쳐야됨
         if DWA_mode == "home" and o == 0:
             wherestop = "starting point"
