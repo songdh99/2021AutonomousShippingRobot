@@ -176,10 +176,10 @@ class SelfDrive:
         score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)  # 최종 스코어를 골라서 인덱스를 구함
 
         ####
-        # print('rr\n', scoremap)
-        # print('scoremap', scoremap)
-        # print('goal{}, current{}, ---{}'.format(goal_radian, current_angle.position.z, (goal_radian - current_angle.position.z)))
-        # print('goal_radian', goal_radian)
+        #print('rr\n', scoremap)
+        #print('scoremap', scoremap)
+        print('goal{}, current{}, @@@{}'.format(goal_radian, current_angle.position.z, (goal_radian - current_angle.position.z)))
+        #print('goal_radian', goal_radian)
 
         turtle_vel.linear.x = Mps[score_row_col[0]]
         turtle_vel.angular.z = Radps[score_row_col[1]]
@@ -217,10 +217,10 @@ class SelfDrive:
                 n += 1
 
         #if DWA_mode == "patrol" or DWA_mode == "home":
-        self.publisher.publish(turtle_vel)
+            #self.publisher.publish(turtle_vel)
         self.stop_point.publish(stop_point)
 
-        print('wherestop {}, stop_point {}, DWA_mode {}'.format(wherestop, stop_point.data, DWA_mode))
+        #print('wherestop {}, stop_point {}, DWA_mode {}'.format(wherestop, stop_point.data, DWA_mode))
 
     def check_mode(self, DWA_pub):
         global o
