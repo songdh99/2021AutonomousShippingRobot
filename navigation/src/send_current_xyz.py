@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 import rospy
 from geometry_msgs.msg import Pose
+from std_msgs.msg import Bool, String
 import math
 import tf
-
+	
 def main():
 	rospy.init_node('send_current_xyz')
 	listener = tf.TransformListener()
 	pub = rospy.Publisher('current_xyz', Pose, queue_size=1)
 	pub2 = rospy.Publisher('current_angle', Pose, queue_size=1)
-	rate = rospy.Rate(20)
+	rate = rospy.Rate(10)
+	
 
 	while not rospy.is_shutdown():
 		try:
@@ -23,7 +25,8 @@ def main():
 		current_xyz.position.z = trans[2]
 		
 		current_angle = Pose()
-		current_angle.position.z = rot[2]
+		roll, pitch, yaw = tf.transformations.euler_from_quaternion(rot)
+		current_angle.position.z = yaw
 		
 
 		print("x : {} y : {} z : {} angle.z : {} ".format(current_xyz.position.x, current_xyz.position.y, current_xyz.position.z, current_angle.position.z))
@@ -36,5 +39,4 @@ if __name__ == '__main__':
 		main()
 	except rospy.ROSInterruptException:
 		pass
-		
-
+	
