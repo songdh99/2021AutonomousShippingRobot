@@ -31,8 +31,8 @@ def main():
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 rospy.loginfo("tf_except")
                 continue
-            pose.position.x = trans[0]
-            pose.position.y = trans[1]
+            pose.position.x = trans[0] + 0.02
+            pose.position.y = trans[1] / 2
             pose.position.z = trans[2]
             pose.orientation.x = rot[0]
             pose.orientation.y = rot[1]
@@ -40,6 +40,7 @@ def main():
             pose.orientation.w = rot[3]
             rospy.loginfo("{}".format(pose))
             rospy.loginfo("aruco tf_pub end :)")
+            a_about_m_pub.publish(pose)
             aruco_tf_check_pub.publish(True)
         else:
             aruco_tf_check_pub.publish(False)
