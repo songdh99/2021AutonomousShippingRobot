@@ -96,7 +96,6 @@ class SelfDrive:
 
     def near_dis_score(self):
         global near_dis_score
-
         # (160, 10, 1, rps_c) 각도를 스캔한 거리값으로 변경
         a_R_s_scandistance = np.where(True, SCAN_ran[dg_angle160_Radps_step], SCAN_ran[dg_angle160_Radps_step])
         # (160, 10, mps_c, rps_c)
@@ -108,29 +107,18 @@ class SelfDrive:
         near_dis_before = np.where(near_dis_5 > 0.30, 0.5, near_dis_5)  # 30cm가 넘는 것은 30cm로 만듦
         near_dis_score = np.where(near_dis_before < 0.15, -100, near_dis_before)  # 10cm 보다 낮은 것은 -1로 만듦
 
-
     def goal_robot_dis(self):
         global retry
         global goal_radian
         global wherestop
         global R_G_dis
         global r_g_score
-
         x = goal_location_x - current_xyz.position.x
         y = goal_location_y - current_xyz.position.y
         goal_radian = math.atan2(y, x) * 180 / math.pi
         if goal_radian < 0:
             goal_radian += 360
         R_G_dis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
-
-        if R_G_dis < 0.30 and wherestop == "goal point":
-            wherestop = "stop_rot_goal"
-
-        if R_G_dis < 0.30 and wherestop == "starting point":
-            wherestop = "stop_rot_home"
-
-        if R_G_dis < 0.25:
-            wherestop = "stop_adv"
 
         # 목표와 로봇사이 거리 스코어
         Rot = np.array(
@@ -160,12 +148,23 @@ class SelfDrive:
 
         turtle_vel.linear.x = Mps[score_row_col[0]]
         turtle_vel.angular.z = Radps[score_row_col[1]]
+
         # 만약 모든 범위가 10cm 보다 낮다면 turn
         if np.max(near_dis_score) == -100:
             turn = True
+
         if turn:
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = -1.0
+
+        if R_G_dis < 0.30 and wherestop == "goal point":
+            wherestop = "stop_rot_goal"
+
+        if R_G_dis < 0.30 and wherestop == "starting point":
+            wherestop = "stop_rot_home"
+
+        if R_G_dis < 0.25:
+            wherestop = "stop_adv"
 
         # 목표에 정면으로 바라보게
         if wherestop == "stop_rot_goal" or wherestop == "stop_rot_home":
@@ -184,7 +183,6 @@ class SelfDrive:
             turtle_vel.angular.z = 0
             # 20cm 이내로 들게 되면 curren_xyz 함수에서 wherestop = "stop_adv"
 
-        ##########################mani가 집는 동작을 완료 후 control에서 뭘 어떻게 보냈는지 까먹음
         if wherestop == "stop_adv":
             stop_point.data = "stop"
             turtle_vel.linear.x = 0
