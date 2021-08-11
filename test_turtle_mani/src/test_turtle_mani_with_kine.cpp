@@ -7,18 +7,20 @@
 
 using namespace std;
 
-int Pick[5] = {1,3,2,5};
-int Place[5] = {4,1,2,5};
+int Pick[5] = {0,1,3,2,5};
+int Place[5] = {0,4,1,2,5};
 
-string place;
-string pick;
+string ppw; 
+
 int cnt;
 bool fin_call = true;
 
 void which(const std_msgs::String& place_or_pick){
 
-	if(place_or_pick.data == "pick") pick =  place_or_pick.data;
-	else if(place_or_pick.data == "place") place =  place_or_pick.data;
+	ppw =  place_or_pick.data;
+    if(place_or_pick.data == "pick") ROS_INFO("pick");
+    else if(place_or_pick.data == "Wait") ROS_INFO("wait");
+    else ROS_INFO("place");
 }
 
 void fin_act_call(const std_msgs::Bool& msg){
@@ -27,8 +29,9 @@ void fin_act_call(const std_msgs::Bool& msg){
 }
 
 int main(int argc, char **argv){
+    ROS_INFO("main");
     
-	ros::init(argc, argv,"pub_check_mode_num");
+	ros::init(argc, argv,"what_to_do_pub");
 	ros::NodeHandle nh;
 
 	ros::Publisher chatter_pub = nh.advertise<std_msgs::Int32>("check_mode", 100);
@@ -43,53 +46,69 @@ int main(int argc, char **argv){
 	std_msgs::Int32 check_num;
 
 	ros::Rate loop_rate(0.5);
-
+    
 	while(ros::ok()){
-			
-        if(pick == "pick"){
-
+        if(ppw == "pick"){
             if(fin_call){
-
+                //ROS_INFO("pick");
                 if(cnt == 5){
-                    fin_act.data = true;
                     cnt = 0;
+                    fin_act.data = true;
+                    ros::Duration(3.5).sleep();
+                    fin_call_pub.publish(fin_act);
+                    ROS_INFO("cnt == 4 fin_call_pub");
                 }
 
                 check_num.data = Pick[cnt];
-                ROS_INFO("*pick* check_num.data : %d, cnt : %d", check_num.data, cnt);
                 cnt++;
-            }
 
-            ros::Duration(3.0).sleep();
+                ros::Duration(2.5).sleep();
         
-            chatter_pub.publish(check_num);
-            ROS_INFO("%d", check_num);
-            fin_call = false;
-            ROS_INFO("fin_call false : %d", fin_call);
+                chatter_pub.publish(check_num);
+                ROS_INFO("check_num : %d", check_num);
+                fin_call = false;
+            }
+        
         }
-        else if(place == "place"){
+        else if(ppw == "place"){
+            //ROS_INFO("place");
 
             if(fin_call){
-
                 if(cnt == 5){
-                    fin_act.data = true;
                     cnt = 0;
+                    fin_act.data = true;
+                    fin_call_pub.publish(fin_act);
+                    ROS_INFO("cnt == 4 fin_call_pub");
+                    break;
                 }
                 
                 check_num.data = Place[cnt];
-                ROS_INFO("*place* check_num.data : %d, cnt : %d", check_num.data, cnt);
                 cnt++;
-            }
 
-            ros::Duration(3.0).sleep();
+                ros::Duration(2.3).sleep();
+        
+                chatter_pub.publish(check_num);
+                ROS_INFO("check_num : %d", check_num);
+                fin_call = false;
+                ROS_INFO("fin_call false : %d", fin_call);
+            }
+        }
+        
+        else if (ppw == "Wait"){
+            cnt = 0;
+            check_num.data = 6;
+
+            ros::Duration(0.1).sleep();
         
             chatter_pub.publish(check_num);
-            ROS_INFO("%d", check_num);
-            fin_call = false;
-            ROS_INFO("fin_call false : %d", fin_call);
+            ROS_INFO("check_num : %d", check_num);
+
         }
 
-	ros::spinOnce();
-	loop_rate.sleep();
+        ROS_INFO("end");
+        fin_act.data = false;
+
+        ros::spinOnce();
+        loop_rate.sleep();
 	}
 }
