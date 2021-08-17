@@ -14,7 +14,6 @@ rps_c = 13
 Mps = [0.15, 0.13]
 Radps = [0, 0.3, -0.3, 0.5, -0.5, 0.6, -0.6, 0.7, -0.7, 0.8, -0.8, 0.9, -0.9]  # 첫 원소는 무조건 0을 넣어야 함 (계산식이 다르기 때문)
 
-
 five_Radps_scandistance = np.full((10, 1, rps_c), 0.)  # 10스텝까지의 다섯개의 각속도에 따른 각도마다 스캔값 저장
 # 속도, 각속도에 따라 도달하는 직선거리값을 step 마다 계산
 # 한번 계산하고 계속 사용하기 위해 함수 밖에 작성
@@ -44,6 +43,8 @@ stop_point = String()
 wherestop = String()
 goal_location_x = 0.4283
 goal_location_y = -1.6591
+gl_x = goal_location_x
+gl_y = goal_location_y
 start_location_x = 0.
 start_location_y = 0.
 goal_radian = 0.
@@ -91,19 +92,27 @@ class SelfDrive:
         global n
         global DWA_mode
         global wherestop
+        global goal_location_x
+        global goal_location_y
+        global gl_x
+        global gl_y
         DWA_mode = DWA_pub.data  ###########고쳐야됨
         if DWA_mode == "home" and o == 0:
             wherestop = "starting point"
             stop_point.data = "wait"
             n = 0
             o = 1
+        if DWA_mode == "patrol" and o == 1:
+            n = 0
+            o = 0
+            goal_location_x = gl_x
+            goal_location_y = gl_y
 
     def lds_callback(self, scan):
         global goal_location_x
         global goal_location_y
         global goal_radian
         global DWA_mode
-        global retry
         global r_g_score
         global stop_point
         global wherestop
@@ -114,7 +123,6 @@ class SelfDrive:
         global pass_distance
 
         def r_g_scoring():
-            global retry
             global goal_radian
             global wherestop
             global R_G_dis
@@ -181,9 +189,9 @@ class SelfDrive:
         r_g_scoring()
         near_dis_scoring()
 
-        scoremap = 0.1 * near_dis_score + pass_distance #- 0.000000000000003*r_g_score
+        scoremap = 0.1 * near_dis_score + pass_distance  # - 0.000000000000003*r_g_score
         score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)  # 최종 스코어를 골라서 인덱스를 구함
-        
+
         turtle_vel.linear.x = Mps[score_row_col[0]]
         turtle_vel.angular.z = Radps[score_row_col[1]]
 
@@ -194,8 +202,6 @@ class SelfDrive:
         if turn:
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = -1.0
-                
-
 
         if R_G_dis < 0.30 and wherestop == "goal point":
             wherestop = "stop_rot_goal"
@@ -224,7 +230,7 @@ class SelfDrive:
             # 20cm 이내로 들게 되면 curren_xyz 함수에서 wherestop = "stop_adv"
 
         if wherestop == "stop_adv":
-            
+
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = 0
             if n == 0:
@@ -239,12 +245,11 @@ class SelfDrive:
         self.publisher.publish(turtle_vel)
         self.stop_point.publish(stop_point)
         print("SP:{}, WH:{}, n:{}".format(stop_point.data, wherestop, n))
-        
+
         if stop_point.data == "stop":
             n += 1
             if n == 15:
                 stop_point.data = "wait"
-                
 
 
 def main():
