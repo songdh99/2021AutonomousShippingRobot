@@ -212,6 +212,14 @@ class SelfDrive:
         if R_G_dis < 0.12:
             wherestop = "stop_adv"
 
+        if R_G_dis < 0.60 and (wherestop == "goal point" or wherestop == "starting point"):
+            if -6 > goal_radian - current_angle.position.z:
+                turtle_vel.angular.z = -0.5
+            if 6 < goal_radian - current_angle.position.z:
+                turtle_vel.angular.z = 0.5
+            if -6 < (goal_radian - current_angle.position.z) < 6:
+                turtle_vel.angular.z = 0
+
         # 목표에 정면으로 바라보게
         if wherestop == "stop_rot_goal" or wherestop == "stop_rot_home":
             turtle_vel.linear.x = 0
@@ -230,7 +238,6 @@ class SelfDrive:
             # 20cm 이내로 들게 되면 curren_xyz 함수에서 wherestop = "stop_adv"
 
         if wherestop == "stop_adv":
-
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = 0
             if n == 0:
