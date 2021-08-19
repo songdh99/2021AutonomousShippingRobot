@@ -214,10 +214,13 @@ class SelfDrive:
 
         if R_G_dis < 0.60 and (wherestop == "goal point" or wherestop == "starting point"):
             if -6 > goal_radian - current_angle.position.z:
+                turtle_vel.linear.x = 1.2
                 turtle_vel.angular.z = -0.5
             if 6 < goal_radian - current_angle.position.z:
+                turtle_vel.linear.x = 1.2
                 turtle_vel.angular.z = 0.5
             if -6 < (goal_radian - current_angle.position.z) < 6:
+                turtle_vel.linear.x = 1.2
                 turtle_vel.angular.z = 0
 
         # 목표에 정면으로 바라보게
