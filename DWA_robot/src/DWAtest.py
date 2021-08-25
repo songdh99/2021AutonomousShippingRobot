@@ -41,19 +41,26 @@ current_xyz = Pose()
 current_angle = Pose()
 stop_point = String()
 wherestop = String()
-goal_location_x = 0.2206
-goal_location_y = -1.6899
-gl_x = goal_location_x
-gl_y = goal_location_y
-start_location_x = 0.
-start_location_y = 0.
+goal_location_x = 0.6826
+goal_location_y = -0.4068
+g_s_x = 0.3790
+g_s_y = -0.0679
+gl_x = 0.6826
+gl_y = -0.4068
+start_location_x = -1.1794
+start_location_y = 1.5399
+s_s_x = -0.8691
+s_s_y = 1.2252
 goal_radian = 0.
+g_s_radian = 0.
 retry = 0
 r_g_score = np.full((mps_c, rps_c), 0.)
 pass_distance = np.full((mps_c, rps_c), 0.)
 near_dis_score = np.full((mps_c, rps_c), 0.)
+t = 0
 o = 0
 n = 0
+b = 0
 DWA_mode = String()
 R_G_dis = 0.
 
@@ -98,11 +105,14 @@ class SelfDrive:
         global gl_y
         DWA_mode = DWA_pub.data  ###########고쳐야됨
         if DWA_mode == "home" and o == 0:
-            wherestop = "starting point"
+            wherestop = "back"
             stop_point.data = "wait"
             n = 0
             o = 1
+            goal_location_x = start_location_x
+            goal_location_y = start_location_y
         if DWA_mode == "patrol" and o == 1:
+            wherestop = "back"
             n = 0
             o = 0
             goal_location_x = gl_x
@@ -111,28 +121,46 @@ class SelfDrive:
     def lds_callback(self, scan):
         global goal_location_x
         global goal_location_y
+        global gl_x
+        global gl_y
         global goal_radian
         global DWA_mode
         global r_g_score
         global stop_point
         global wherestop
         global SCAN_ran
+        global t
+        global o
         global n
+        global b
         global R_G_dis
         global near_dis_score
         global pass_distance
 
         def r_g_scoring():
             global goal_radian
+            global g_s_radian
             global wherestop
             global R_G_dis
             global r_g_score
+
             x = goal_location_x - current_xyz.position.x
             y = goal_location_y - current_xyz.position.y
             goal_radian = math.atan2(y, x) * 180 / math.pi
+            
             if goal_radian < 0:
                 goal_radian += 360
+            
             R_G_dis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
+
+            gs_x = g_s_x - current_xyz.position.x
+            gs_y = g_s_y - current_xyz.position.y
+            g_s_radian = math.atan2(gs_y, gs_x) * 180 / math.pi
+
+            if g_s_radian < 0:
+                g_s_radian += 360
+            
+            R_GS_dis = np.hypot(g_s_x - current_xyz.position.x, g_s_y - current_xyz.position.y)
 
             # 목표와 로봇사이 거리 스코어
             Rot = np.array(
@@ -198,10 +226,22 @@ class SelfDrive:
         # 만약 모든 범위가 10cm 보다 낮다면 turn
         if np.max(near_dis_score) == -100:
             turn = True
-
-        if turn:
+        if turn :
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = -1.0
+        #if turn == False:
+        #    t = 0
+        # if turn and t == 0:
+        #     if 0 < goal_radian - current_angle.position.z:
+        #         t = 1
+        #     if 0 > goal_radian - current_angle.position.z:
+        #         t = -1
+        # if turn and t == 1:
+        #     turtle_vel.linear.x = 0
+        #     turtle_vel.angular.z = 1.0
+        # if turn and t == -1:
+        #     turtle_vel.linear.x = 0
+        #     turtle_vel.angular.z = -1.0
 
         if R_G_dis < 0.30 and wherestop == "goal point":
             wherestop = "stop_rot_goal"
@@ -212,25 +252,25 @@ class SelfDrive:
         if R_G_dis < 0.12:
             wherestop = "stop_adv"
 
-        if R_G_dis < 0.60 and (wherestop == "goal point" or wherestop == "starting point"):
+        if R_G_dis < 0.80 and (wherestop == "goal point" or wherestop == "starting point"):
             if -6 > goal_radian - current_angle.position.z:
-                turtle_vel.linear.x = 1.2
+                turtle_vel.linear.x = 0.12
                 turtle_vel.angular.z = -0.5
             if 6 < goal_radian - current_angle.position.z:
-                turtle_vel.linear.x = 1.2
+                turtle_vel.linear.x = 0.12
                 turtle_vel.angular.z = 0.5
             if -6 < (goal_radian - current_angle.position.z) < 6:
-                turtle_vel.linear.x = 1.2
+                turtle_vel.linear.x = 0.12
                 turtle_vel.angular.z = 0
 
         # 목표에 정면으로 바라보게
         if wherestop == "stop_rot_goal" or wherestop == "stop_rot_home":
             turtle_vel.linear.x = 0
-            if -6 > goal_radian - current_angle.position.z:
+            if -3 > goal_radian - current_angle.position.z:
                 turtle_vel.angular.z = -0.15
-            if 6 < goal_radian - current_angle.position.z:
+            if 3 < goal_radian - current_angle.position.z:
                 turtle_vel.angular.z = 0.15
-            if -6 < (goal_radian - current_angle.position.z) < 6:
+            if -3 < (goal_radian - current_angle.position.z) < 3:
                 turtle_vel.angular.z = 0
                 wherestop = "stop_rot"
 
@@ -238,27 +278,37 @@ class SelfDrive:
         if wherestop == "stop_rot":
             turtle_vel.linear.x = 0.05
             turtle_vel.angular.z = 0
-            # 20cm 이내로 들게 되면 curren_xyz 함수에서 wherestop = "stop_adv"
+            # 20cm 이내로 들게 되면 위에서 wherestop = "stop_adv"
 
         if wherestop == "stop_adv":
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = 0
             if n == 0:
                 stop_point.data = "stop"
-                goal_location_x = start_location_x
-                goal_location_y = start_location_y
+                
                 n += 1
+
+        if wherestop == "back":
+            turtle_vel.linear.x = -0.18
+            turtle_vel.angular.z = -2.0
+            b += 1
+            if b == 6:
+                b = 0
+                if o == 0:
+                    wherestop = "starting point"
+                if o == 1:
+                    wherestop = "goal point"
 
         if DWA_mode != "patrol" and DWA_mode != "home":
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = 0
         self.publisher.publish(turtle_vel)
         self.stop_point.publish(stop_point)
-        print("SP:{}, WH:{}, n:{}".format(stop_point.data, wherestop, n))
+        print("g:{}, SP:{}, WH:{}, n:{}".format(goal_location_x, stop_point.data, wherestop, n))
 
         if stop_point.data == "stop":
             n += 1
-            if n == 15:
+            if n == 60:
                 stop_point.data = "wait"
 
 
