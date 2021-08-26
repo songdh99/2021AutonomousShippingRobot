@@ -321,7 +321,7 @@ class SelfDrive:
             turtle_vel.linear.x = -0.18
             turtle_vel.angular.z = -2.0
             b += 1
-            if b == 6:
+            if b == 10:
                 b = 0
                 if o == 0:
                     wherestop = "starting point"
