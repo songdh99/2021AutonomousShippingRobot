@@ -14,7 +14,6 @@ rps_c = 13
 Mps = [0.15, 0.13]
 Radps = [0, 0.3, -0.3, 0.5, -0.5, 0.6, -0.6, 0.7, -0.7, 0.8, -0.8, 0.9, -0.9]  # 첫 원소는 무조건 0을 넣어야 함 (계산식이 다르기 때문)
 
-
 five_Radps_scandistance = np.full((10, 1, rps_c), 0.)  # 10스텝까지의 다섯개의 각속도에 따른 각도마다 스캔값 저장
 # 속도, 각속도에 따라 도달하는 직선거리값을 step 마다 계산
 # 한번 계산하고 계속 사용하기 위해 함수 밖에 작성
@@ -42,18 +41,34 @@ current_xyz = Pose()
 current_angle = Pose()
 stop_point = String()
 wherestop = String()
-goal_location_x = 0.4283
-goal_location_y = -1.6591
-start_location_x = 0.
-start_location_y = 0.
+goal_location_x = 0.6826
+goal_location_y = -0.4068
+g_s_x = 0.3790
+g_s_y = -0.0679
+gl_x = 0.6826
+gl_y = -0.4068
+aruco_location_x = 0.6826
+aruco_location_y = -0.4068
+a_s_x = 0.3790
+a_s_y = -0.0679
+start_location_x = -1.1794
+start_location_y = 1.5399
+s_s_x = -0.8691
+s_s_y = 1.2252
 goal_radian = 0.
+g_s_radian = 0.
 retry = 0
-r_g_score = np.arange(0, rps_c)
-near_dis_score = np.arange(0, rps_c)
+r_g_score = np.full((mps_c, rps_c), 0.)
+pass_distance = np.full((mps_c, rps_c), 0.)
+near_dis_score = np.full((mps_c, rps_c), 0.)
+t = 0
 o = 0
 n = 0
+angle = 0
+b = 0
 DWA_mode = String()
 R_G_dis = 0.
+R_GS_dis = 0.
 
 
 class SelfDrive:
@@ -64,6 +79,7 @@ class SelfDrive:
         rospy.Subscriber('DWA_pub', String, self.check_mode)
         rospy.Subscriber('current_xyz', Pose, self.current_xyz)
         rospy.Subscriber('current_angle', Pose, self.current_angle)
+        rospy.Subscirbe('a_about_r_pos', Pose, self.a_about_r_pos)
 
     def current_angle(self, angle):
         global current_angle
@@ -87,63 +103,145 @@ class SelfDrive:
 
     def check_mode(self, DWA_pub):
         global o
+        global n
         global DWA_mode
         global wherestop
+        global goal_location_x
+        global goal_location_y
+        global g_s_x
+        global g_s_y
+        global gl_x
+        global gl_y
         DWA_mode = DWA_pub.data  ###########고쳐야됨
         if DWA_mode == "home" and o == 0:
-            wherestop = "starting point"
+            wherestop = "back"
+            stop_point.data = "wait"
+            n = 0
             o = 1
+            goal_location_x = start_location_x
+            goal_location_y = start_location_y
+            g_s_x = s_s_x
+            g_s_y = s_s_y
+        if DWA_mode == "patrol" and o == 1:
+            wherestop = "back"
+            n = 0
+            o = 0
+            goal_location_x = aruco_location_x
+            goal_location_y = aruco_location_y
+            g_s_x = a_s_x
+            g_s_y = a_s_y
 
-    def near_dis_score(self):
-        global near_dis_score
-        # (160, 10, 1, rps_c) 각도를 스캔한 거리값으로 변경
-        a_R_s_scandistance = np.where(True, SCAN_ran[dg_angle160_Radps_step], SCAN_ran[dg_angle160_Radps_step])
-        # (160, 10, mps_c, rps_c)
-        neardis160 = np.sqrt((a_R_s_scandistance * np.sin(np.radians(dg_angle160_Radps_step))) ** 2 + (
-                fulldistancesteps - a_R_s_scandistance * abs(np.cos(np.radians(dg_angle160_Radps_step)))) ** 2)
-        # (10, mps_c, rps_c)
-        near_dis = np.amin(neardis160, axis=0)
-        near_dis_5 = near_dis[5]
-        near_dis_before = np.where(near_dis_5 > 0.30, 0.5, near_dis_5)  # 30cm가 넘는 것은 30cm로 만듦
-        near_dis_score = np.where(near_dis_before < 0.15, -100, near_dis_before)  # 10cm 보다 낮은 것은 -1로 만듦
-
-    def goal_robot_dis(self):
-        global retry
-        global goal_radian
-        global wherestop
-        global R_G_dis
-        global r_g_score
-        x = goal_location_x - current_xyz.position.x
-        y = goal_location_y - current_xyz.position.y
-        goal_radian = math.atan2(y, x) * 180 / math.pi
-        if goal_radian < 0:
-            goal_radian += 360
-        R_G_dis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
-
-        # 목표와 로봇사이 거리 스코어
-        Rot = np.array(
-            [[math.cos(current_angle.position.z * math.pi / 180), -math.sin(current_angle.position.z * math.pi / 180)],
-             [math.sin(current_angle.position.z * math.pi / 180), math.cos(current_angle.position.z * math.pi / 180)]])
-        path_len = np.round_((np.dot(xy_move_distance, Rot)), 4)  # 글로벌에서 본 경로거리를 구해서 4째자리까지 반올림
-        r_g_path_len_x = goal_location_x - current_xyz.position.x + np.delete(path_len, 1, axis=2)
-        r_g_path_len_y = goal_location_y - current_xyz.position.y + np.delete(path_len, 0, axis=2)
-        r_g_dis = np.reshape(np.hypot(r_g_path_len_x, r_g_path_len_y), (10, mps_c, rps_c))
-        r_g_score = r_g_dis[5]      # (1, rps_c), sqrt(x**2 + y**2)
+    def a_about_r_pos(self, xyz):
+        global goal_location_x
+        global goal_location_y
+        global g_s_x
+        global g_s_y
+        goal_location_x = xyz.position.x + 0.4
+        goal_location_y = xyz.position.y
+        g_s_x = xyz.position.x
+        g_s_y = xyz.position.y
+        
 
     def lds_callback(self, scan):
         global goal_location_x
         global goal_location_y
+        global gl_x
+        global gl_y
         global goal_radian
+        global g_s_radian
         global DWA_mode
-        global retry
         global r_g_score
         global stop_point
         global wherestop
         global SCAN_ran
+        global t
+        global o
         global n
+        global angle
+        global b
+        global R_G_dis
+        global R_GS_dis
+        global near_dis_score
+        global pass_distance
+
+        def r_g_scoring():
+            global goal_radian
+            global g_s_radian
+            global wherestop
+            global R_G_dis
+            global R_GS_dis
+            global r_g_score
+
+            x = goal_location_x - current_xyz.position.x
+            y = goal_location_y - current_xyz.position.y
+            goal_radian = math.atan2(y, x) * 180 / math.pi
+            if goal_radian < 0:
+                goal_radian += 360
+            R_G_dis = np.hypot(goal_location_x - current_xyz.position.x, goal_location_y - current_xyz.position.y)
+
+            gs_x = g_s_x - current_xyz.position.x
+            gs_y = g_s_y - current_xyz.position.y
+            g_s_radian = math.atan2(gs_y, gs_x) * 180 / math.pi
+            if g_s_radian < 0:
+                g_s_radian += 360
+            R_GS_dis = np.hypot(g_s_x - current_xyz.position.x, g_s_y - current_xyz.position.y)
+
+            # 목표와 로봇사이 거리 스코어
+            Rot = np.array(
+                [[math.cos(current_angle.position.z * math.pi / 180),
+                  -math.sin(current_angle.position.z * math.pi / 180)],
+                 [math.sin(current_angle.position.z * math.pi / 180),
+                  math.cos(current_angle.position.z * math.pi / 180)]])
+            path_len = np.round_((np.dot(xy_move_distance, Rot)), 4)  # 글로벌에서 본 경로거리를 구해서 4째자리까지 반올림
+            r_g_path_len_x = goal_location_x - current_xyz.position.x + np.delete(path_len, 1, axis=2)
+            r_g_path_len_y = goal_location_y - current_xyz.position.y + np.delete(path_len, 0, axis=2)
+            r_g_path_dis = np.reshape(np.hypot(r_g_path_len_x, r_g_path_len_y), (10, mps_c, rps_c))
+            r_g_score = r_g_path_dis[5]  # (1, rps_c), sqrt(x**2 + y**2)
+
+        def near_dis_scoring():
+            global near_dis_score
+            global pass_distance
+            dfors = np.degrees(step * np.array(Radps))  # degree for scan(10, 1, rps_c)
+            dfors = np.int32(np.rint(dfors))  # 반올림 후 int형으로 변경
+            # <five_Radps_scandistance>
+            for i in range(0, 10):
+                for k in range(0, rps_c):
+                    five_Radps_scandistance[i][0][k] = SCAN_ran[dfors[i][0][k]]
+            t_f_f = five_Radps_scandistance * np.ones((mps_c, 1))
+            true_false = t_f_f > fulldistancesteps  # (10, mps_c, rps_c) 계산값이 측정거리보다 낮아 부딪히지 않는다면 True
+
+            # <passsec> (mps_c, rps_c) 해당 가닥이 몇초동안 장애물에 부딪히지 않는지 계산
+            passsec = np.int32(np.zeros((mps_c, rps_c)))
+            for i in range(0, 10):
+                passsec = np.where(true_false[i], i, passsec)  # 부딪히기 바로 전 step을 저장
+
+            # <pass_distance> (mps_c, rps_c) 부딪히지 않고 이동하는 거리
+            pass_distance = passsec * np.array(Mps).reshape(mps_c, 1)
+            # (160, 10, 1, rps_c) 각도를 스캔한 거리값으로 변경
+            a_R_s_scandistance = np.where(True, SCAN_ran[dg_angle160_Radps_step], SCAN_ran[dg_angle160_Radps_step])
+
+            # (160, 10, mps_c, rps_c)
+            neardis160 = np.sqrt((a_R_s_scandistance * np.sin(np.radians(dg_angle160_Radps_step))) ** 2 + (
+                    fulldistancesteps - a_R_s_scandistance * abs(np.cos(np.radians(dg_angle160_Radps_step)))) ** 2)
+            # (10, mps_c, rps_c)
+            near_dis_min = np.amin(neardis160, axis=0)
+
+            for i in range(0, mps_c):
+                for j in range(0, rps_c):
+                    k = (passsec[i][j] - 2) % 1
+                    near_dis_score[i][j] = near_dis_min[k][i][j]  # (mps_c, rps_c)
+            # (mps_c, rps_c)
+            near_dis_score = np.where(near_dis_score > 0.30, 0.5, near_dis_score)  # 30cm가 넘는 것은 30cm로 만듦
+            near_dis_score = np.where(near_dis_score < 0.15, -100, near_dis_score)  # 10cm 보다 낮은 것은 -1로 만듦
+
+        turtle_vel = Twist()
         turn = False
         SCAN_ran = np.array(scan.ranges)
-        scoremap = r_g_score - near_dis_score
+
+        r_g_scoring()
+        near_dis_scoring()
+
+        scoremap = 0.1 * near_dis_score + pass_distance  # - 0.000000000000003*r_g_score
         score_row_col = np.unravel_index(np.argmax(scoremap, axis=None), scoremap.shape)  # 최종 스코어를 골라서 인덱스를 구함
 
         turtle_vel.linear.x = Mps[score_row_col[0]]
@@ -152,67 +250,121 @@ class SelfDrive:
         # 만약 모든 범위가 10cm 보다 낮다면 turn
         if np.max(near_dis_score) == -100:
             turn = True
-
         if turn:
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = -1.0
+        # if turn == False:
+        #    t = 0
+        # if turn and t == 0:
+        #     if 0 < goal_radian - current_angle.position.z:
+        #         t = 1
+        #     if 0 > goal_radian - current_angle.position.z:
+        #         t = -1
+        # if turn and t == 1:
+        #     turtle_vel.linear.x = 0
+        #     turtle_vel.angular.z = 1.0
+        # if turn and t == -1:
+        #     turtle_vel.linear.x = 0
+        #     turtle_vel.angular.z = -1.0
 
-        if R_G_dis < 0.30 and wherestop == "goal point":
+        if R_GS_dis < 0.80 and (wherestop == "goal point" or wherestop == "starting point"):
+            if -2 > g_s_radian - current_angle.position.z:
+                turtle_vel.linear.x = 0.12
+                turtle_vel.angular.z = -0.5
+            if 2 < g_s_radian - current_angle.position.z:
+                turtle_vel.linear.x = 0.12
+                turtle_vel.angular.z = 0.5
+            if -2 < (g_s_radian - current_angle.position.z) < 2:
+                turtle_vel.linear.x = 0.12
+                turtle_vel.angular.z = 0
+
+        if R_GS_dis < 0.02 and wherestop == "goal point":
             wherestop = "stop_rot_goal"
 
-        if R_G_dis < 0.30 and wherestop == "starting point":
+        if R_GS_dis < 0.02 and wherestop == "starting point":
             wherestop = "stop_rot_home"
 
-        if R_G_dis < 0.25:
-            wherestop = "stop_adv"
+
 
         # 목표에 정면으로 바라보게
         if wherestop == "stop_rot_goal" or wherestop == "stop_rot_home":
             turtle_vel.linear.x = 0
-            if -6 > (goal_radian - current_angle.position.z):
-                turtle_vel.angular.z = -0.2
-            if 6 < (goal_radian - current_angle.position.z):
-                turtle_vel.angular.z = 0.2
-            if -6 < (goal_radian - current_angle.position.z) < 6:
+            if -2 > goal_radian - current_angle.position.z:
+                turtle_vel.angular.z = -0.15
+            if 2 < goal_radian - current_angle.position.z:
+                turtle_vel.angular.z = 0.15
+            if -2 < (goal_radian - current_angle.position.z) < 2:
                 turtle_vel.angular.z = 0
+                angle += 1
+            if angle == 3:
                 wherestop = "stop_rot"
+                angle = 0
 
-        # 목표와 20cm이내로 들게
+        # 목표와 12cm 이내로 들게
         if wherestop == "stop_rot":
             turtle_vel.linear.x = 0.05
             turtle_vel.angular.z = 0
-            # 20cm 이내로 들게 되면 curren_xyz 함수에서 wherestop = "stop_adv"
+
+        # 12cm 이내로 들게 되면 wherestop = "stop_adv"
+        if R_G_dis < 0.12:
+            wherestop = "stop_adv"
 
         if wherestop == "stop_adv":
-            stop_point.data = "stop"
+            turtle_vel.linear.x = 0
+            if -2 > goal_radian - current_angle.position.z:
+                turtle_vel.angular.z = -0.15
+            if 2 < goal_radian - current_angle.position.z:
+                turtle_vel.angular.z = 0.15
+            if -2 < (goal_radian - current_angle.position.z) < 2:
+                turtle_vel.angular.z = 0
+                angle += 1
+            if angle == 3:
+                wherestop = "STOP"
+                angle = 0
+
+        if wherestop == "STOP":
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = 0
             if n == 0:
-                goal_location_x = start_location_x
-                goal_location_y = start_location_y
+                stop_point.data = "stop"
                 n += 1
 
-        if DWA_mode == "patrol" or DWA_mode == "home":
-            self.publisher.publish(turtle_vel)
-        else:
+        if wherestop == "back":
+            turtle_vel.linear.x = -0.18
+            turtle_vel.angular.z = -2.0
+            b += 1
+            if b == 10:
+                b = 0
+                if o == 0:
+                    wherestop = "starting point"
+                if o == 1:
+                    wherestop = "goal point"
+
+        if DWA_mode != "patrol" and DWA_mode != "home":
             turtle_vel.linear.x = 0
             turtle_vel.angular.z = 0
-            wherestop = "None"
+        self.publisher.publish(turtle_vel)
         self.stop_point.publish(stop_point)
+        print("g:{}, SP:{}, WH:{}, n:{}".format(goal_location_x, stop_point.data, wherestop, n))
+
+        if stop_point.data == "stop":
+            n += 1
+            if n == 60:
+                stop_point.data = "wait"
 
 
 def main():
     rospy.init_node('DWA')
     publisher = rospy.Publisher('cmd_vel', Twist, queue_size=1)
     driver = SelfDrive(publisher)
-    subscriber = rospy.Subscriber('scan', LaserScan,
-                                  lambda scan: driver.lds_callback(scan))
+    rospy.Subscriber('scan', LaserScan, lambda scan: driver.lds_callback(scan))
 
     rospy.spin()
 
 
 if __name__ == "__main__":
     main()
+
 
 
 
