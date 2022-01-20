@@ -2,6 +2,7 @@
 
 2020.12.01 ~ 2021.11.09
 
+![ezgif com-gif-maker (5)](https://user-images.githubusercontent.com/52944554/150262189-f1cf844f-4d03-4732-81d3-c755e4a0a5b3.gif)
 
 
 ## 기본적으로 필요한 패키지
