@@ -66,6 +66,9 @@ git clone https://github.com/ROBOTIS-GIT/turtlebot3_manipulation.git
 - tf
 
 
+**자세한 내용은 Wiki 참고**
+
+
 
 ## 명령어
 
